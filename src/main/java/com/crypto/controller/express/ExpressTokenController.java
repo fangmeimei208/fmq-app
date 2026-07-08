@@ -79,10 +79,19 @@ public class ExpressTokenController {
             String refreshExpiresTimeBeijing = appUtils.formatDateTime(refreshExpiresTime);
             // 构造SQL插入语句
             StringBuilder sql = new StringBuilder();
-            sql.append("INSERT INTO VOP_Token_Alert ");  
-            sql.append("(customer_name, shopId, platform, registrant_name, registrant_mobile," );
-            sql.append("refresh_expires_time, refresh_expires_time_beijing, alert_sent, add_time, edit_time) " );
-            sql.append("VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())" );
+            sql.append("INSERT INTO VOP_Token_Alert");  
+            sql.append("(customer_name" );
+            sql.append(",shopId");
+            sql.append(",platform");
+            sql.append(",registrant_name");
+            sql.append(",registrant_mobile");
+            sql.append(",refresh_expires_time" );
+            sql.append(",refresh_expires_time_beijing");
+            sql.append(",alert_sent");
+            sql.append(",add_time");
+            sql.append(",edit_time");
+            sql.append(") " );
+            sql.append("VALUES ( ?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW() )" );
 
             // 使用KeyHolder获取自增ID
             KeyHolder keyHolder = new GeneratedKeyHolder();
