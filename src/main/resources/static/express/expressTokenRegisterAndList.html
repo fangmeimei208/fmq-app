@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快递token有效期登记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 40px);
+            overflow: hidden;
+        }
+
+        /* ========== 上部分：表单区域 ========== */
+        .upper-section {
+            padding: 25px 35px 20px 35px;
+            flex-shrink: 0;
+            background: white;
+            position: relative;
+        }
+
+        /* 分隔区域 */
+        .section-divider {
+            position: relative;
+            height: 16px;
+            background: linear-gradient(180deg, #e8eaed 0%, #d5d8dc 50%, #c0c4cc 100%);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-divider .divider-line {
+            position: absolute;
+            top: 50%;
+            left: 35px;
+            right: 35px;
+            height: 1px;
+            background: #b0b5bd;
+        }
+
+        .section-divider .divider-tag {
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            color: #e74c3c;
+        }
+
+        .feature-notice {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #ffc107;
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #856404;
+            line-height: 1.4;
+        }
+
+        .feature-notice .notice-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .feature-notice .notice-text {
+            flex: 1;
+        }
+
+        .feature-notice .notice-text strong {
+            color: #e65100;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #333;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-right: 2px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Microsoft YaHei', sans-serif;
+            transition: all 0.3s ease;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: auto;
+            -webkit-appearance: auto;
+            -moz-appearance: auto;
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+        }
+
+        .btn-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 8px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .result-box.success {
+            display: block;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result-box.error {
+            display: block;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ========== 下部分：查询列表区域 ========== */
+        .lower-section {
+            flex: 1;
+            padding: 20px 35px;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 350px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dde0e4;
+        }
+
+        .lower-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-weight: normal;
+            letter-spacing: 0.5px;
+        }
+
+		/* 即将过期行的红色高亮 */
+		tbody tr.row-expiring {
+		    background: #fff0f0 !important;
+		    color: #c0392b;
+		    font-weight: 600;
+		}
+		
+		tbody tr.row-expiring:hover {
+		    background: #ffe0e0 !important;
+		}
+		
+		/* 过期标记图标 */
+		.expiring-badge {
+		    display: inline-block;
+		    background: #e74c3c;
+		    color: white;
+		    font-size: 10px;
+		    padding: 1px 6px;
+		    border-radius: 3px;
+		    margin-left: 5px;
+		    animation: blink 1.5s infinite;
+		}
+		
+		@keyframes blink {
+		    0%, 100% { opacity: 1; }
+		    50% { opacity: 0.5; }
+		}
+
+        /* 查询条件行 */
+        .search-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            align-items: flex-end;
+        }
+
+        .search-group {
+            flex: 1;
+        }
+
+        .search-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #555;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .search-group input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .search-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+        }
+
+        .btn-search {
+            padding: 7px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .btn-search:hover {
+            background: #5a6fd6;
+        }
+
+        .btn-reset-search {
+            padding: 7px 15px;
+            background: white;
+            color: #666;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .btn-reset-search:hover {
+            background: #f0f0f0;
+        }
+
+        /* 表格样式 */
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #dde0e4;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        thead th {
+            background: #f5f6fa;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dde0e4;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        thead th:hover {
+            background: #e8eaf6;
+        }
+
+        thead th .sort-icon {
+            margin-left: 4px;
+            font-size: 10px;
+            color: #bbb;
+        }
+
+        thead th.sorted {
+            color: #667eea;
+        }
+
+        thead th.sorted .sort-icon {
+            color: #667eea;
+        }
+
+        tbody td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f0f1ff;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        tbody tr:nth-child(even):hover {
+            background: #e8eaf6;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .result-count {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                border-radius: 10px;
+            }
+
+            .upper-section {
+                padding: 15px;
+            }
+
+            .lower-section {
+                padding: 15px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .search-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-group {
+                justify-content: center;
+            }
+
+            .section-divider .divider-tag {
+                font-size: 10px;
+                padding: 3px 10px;
+            }
+
+            .header-title h1 {
+                font-size: 18px;
+            }
+
+            .table-wrapper {
+                overflow-x: auto;
+            }
+
+            table {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- ==================== 上部分：表单区域 ==================== -->
+        <div class="upper-section">
+            
+            <div class="header-title">
+                <h1>快递token有效期登记</h1>
+            </div>
+
+            <div class="feature-notice">
+                <span class="notice-icon">📢</span>
+                <span class="notice-text">
+                    <strong>功能说明：</strong>登记的token可在失效前后两天通过企微通知到登记人
+                </span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><span class="required">*</span>登记人姓名：</label>
+                    <input type="text" id="registrantName" placeholder="请输入登记人姓名" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span>登记人手机号：</label>
+                    <input type="text" id="registrantPhone" placeholder="与公司企微手机号一致" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span>客户名称：</label>
+                    <input type="text" id="customerName" placeholder="请输入客户名称" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span>店铺ID：</label>
+                    <input type="text" id="shopId" placeholder="请输入店铺ID" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label><span class="required">*</span>快递平台：</label>
+                    <select id="platform">
+                        <option value="">请选择快递平台</option>
+                        <option value="菜鸟">菜鸟</option>
+                        <option value="唯品会">唯品会</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <span class="required">*</span>Token响应报文：
+                        <span style="font-weight: normal; color: #999; font-size: 11px;">（JSON格式）</span>
+                    </label>
+                    <textarea id="tokenResponse" placeholder='请输入token响应报文'></textarea>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="submitData()">
+                        <span>➕</span> 提 交
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetForm()">
+                        <span>🔄</span> 重 置
+                    </button>
+                </div>
+                <div id="resultBox" class="result-box"></div>
+            </div>
+
+        </div>
+
+        <!-- ==================== 分隔区域 ==================== -->
+        <div class="section-divider">
+            <div class="divider-line"></div>
+            <span class="divider-tag">📋 快来瞧一瞧</span>
+        </div>
+
+        <!-- ==================== 下部分：查询列表区域 ==================== -->
+        <div class="lower-section">
+            
+            <div class="section-header">
+                <div class="lower-title">
+					📋 快递token登记清单
+                </div>
+            </div>
+            
+            <!-- 查询条件 -->
+            <div class="search-row">
+                <div class="search-group">
+                    <label>客户名称：</label>
+                    <input type="text" id="searchCustomerName" placeholder="模糊查询" onkeydown="if(event.key==='Enter')searchRecords()">
+                </div>
+                <div class="search-group">
+                    <label>店铺ID：</label>
+                    <input type="text" id="searchShopId" placeholder="模糊查询" onkeydown="if(event.key==='Enter')searchRecords()">
+                </div>
+                <div class="search-group">
+                    <label>登记人手机号：</label>
+                    <input type="text" id="searchMobile" placeholder="精确查询" onkeydown="if(event.key==='Enter')searchRecords()">
+                </div>
+                <button class="btn-search" onclick="searchRecords()">🔍 查询</button>
+                <button class="btn-reset-search" onclick="resetSearch()">🔄 重置</button>
+            </div>
+
+            <!-- 查询结果表格 -->
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('id')" style="width:50px;">
+                                序号<span class="sort-icon" id="sort-id"></span>
+                            </th>
+                            <th onclick="sortTable('registrant_name')">
+                                登记人姓名<span class="sort-icon" id="sort-registrant_name"></span>
+                            </th>
+                            <th onclick="sortTable('registrant_mobile')">
+                                登记人手机号<span class="sort-icon" id="sort-registrant_mobile"></span>
+                            </th>
+                            <th onclick="sortTable('customer_name')">
+                                客户名称<span class="sort-icon" id="sort-customer_name"></span>
+                            </th>
+                            <th onclick="sortTable('shopId')">
+                                店铺ID<span class="sort-icon" id="sort-shopId"></span>
+                            </th>
+                            <th onclick="sortTable('platform')">
+                                快递平台<span class="sort-icon" id="sort-platform"></span>
+                            </th>
+                            <th onclick="sortTable('refresh_expires_time_beijing')">
+                                失效时间<span class="sort-icon" id="sort-refresh_expires_time_beijing"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="7" class="no-data">点击查询按钮加载数据</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="result-count" id="resultCount"></div>
+        </div>
+        
+    </div>
+
+    <script>
+        // 当前排序状态
+        let currentSortField = 'refresh_expires_time_beijing';
+        let currentSortOrder = 'asc';
+
+        // ========== 上部分：提交表单 ==========
+        function resetForm() {
+            document.getElementById('registrantName').value = '';
+            document.getElementById('registrantPhone').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('shopId').value = '';
+            document.getElementById('platform').value = '';
+            document.getElementById('tokenResponse').value = '';
+            
+            const resultBox = document.getElementById('resultBox');
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'none';
+            resultBox.innerHTML = '';
+        }
+
+        async function submitData() {
+            const registrantName = document.getElementById('registrantName').value.trim();
+            const registrantPhone = document.getElementById('registrantPhone').value.trim();
+            const customerName = document.getElementById('customerName').value.trim();
+            const shopId = document.getElementById('shopId').value.trim();
+            const platform = document.getElementById('platform').value;
+            const tokenResponse = document.getElementById('tokenResponse').value.trim();
+
+            if (!registrantName) { showResult('请输入登记人姓名', 'error'); return; }
+            if (!registrantPhone) { showResult('请输入登记人手机号', 'error'); return; }
+            if (!customerName) { showResult('请输入客户名称', 'error'); return; }
+            if (!shopId) { showResult('请输入店铺ID', 'error'); return; }
+            if (!platform) { showResult('请选择快递平台', 'error'); return; }
+            if (!tokenResponse) { showResult('请输入Token响应报文', 'error'); return; }
+
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(registrantPhone)) {
+                showResult('请输入正确的手机号格式', 'error');
+                return;
+            }
+
+            let jsonData;
+            try {
+                jsonData = JSON.parse(tokenResponse);
+            } catch (e) {
+                showResult('Token响应报文格式错误', 'error');
+                return;
+            }
+
+            let refreshExpiresTime = null;
+            if (platform === '菜鸟') {
+                refreshExpiresTime = jsonData.expire_time;
+            } else if (platform === '唯品会') {
+                if (jsonData.refresh_expires_time !== undefined) {
+                    refreshExpiresTime = jsonData.refresh_expires_time;
+                } else if (jsonData.result && jsonData.result.refresh_expires_time !== undefined) {
+                    refreshExpiresTime = jsonData.result.refresh_expires_time;
+                }
+            }
+
+            if (typeof refreshExpiresTime !== 'number' || refreshExpiresTime <= 0) {
+                showResult('未找到有效的过期时间字段', 'error');
+                return;
+            }
+
+            const confirmMsg = `请确认以下信息：\n\n` +
+                `登记人：${registrantName}\n` +
+                `手机号：${registrantPhone}\n` +
+                `客户名称：${customerName}\n` +
+                `店铺ID：${shopId}\n` +
+                `快递平台：${platform}\n\n` +
+                `确认提交？`;
+
+            if (!confirm(confirmMsg)) return;
+
+            const submitBtn = document.querySelector('.btn-primary');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="loading"></span> 保存中...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/expressToken/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ registrantName, registrantPhone, customerName, shopId, platform, refreshExpiresTime })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showResult('success');
+                    resetForm();
+                    searchRecords();
+                } else {
+                    showResult('error', result.message || '保存失败');
+                }
+            } catch (error) {
+                showResult('error', '网络错误：' + error.message);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function showResult(type, message) {
+            const resultBox = document.getElementById('resultBox');
+            if (type === 'success') {
+                resultBox.className = 'result-box success';
+                resultBox.innerHTML = '<strong>✅ 数据保存成功！</strong>';
+            } else {
+                resultBox.className = 'result-box error';
+                resultBox.innerHTML = '<strong>❌ ' + (message || type) + '</strong>';
+            }
+            resultBox.style.display = 'block';
+        }
+
+        // ========== 下部分：查询列表 ==========
+		async function searchRecords() {
+		    const customerName = document.getElementById('searchCustomerName').value.trim();
+		    const shopId = document.getElementById('searchShopId').value.trim();
+		    const mobile = document.getElementById('searchMobile').value.trim();
+		
+		    const params = new URLSearchParams();
+		    if (customerName) params.append('customerName', customerName);
+		    if (shopId) params.append('shopId', shopId);
+		    if (mobile) params.append('registrantMobile', mobile);
+		    params.append('sortField', currentSortField);
+		    params.append('sortOrder', currentSortOrder);
+		
+		    try {
+		        const response = await fetch('/api/expressToken/records/search?' + params.toString());
+		        const result = await response.json();
+		
+		        const tbody = document.getElementById('tableBody');
+		        const resultCount = document.getElementById('resultCount');
+		
+		        if (result.success && result.data.length > 0) {
+		            const now = new Date().getTime();
+		            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+		            const startTime = now - sevenDaysMs;
+		            const endTime = now + sevenDaysMs;
+		
+		            let html = '';
+		            let expiringCount = 0;
+		
+		            result.data.forEach(record => {
+		                let isExpiringSoon = false;
+		                let expiredDays = '';
+		                const beijingTimeStr = record.refreshExpiresTimeBeijing || '';
+		                
+		                if (beijingTimeStr) {
+		                    const expireTime = new Date(beijingTimeStr.replace(/-/g, '/')).getTime();
+		                    if (!isNaN(expireTime)) {
+		                        isExpiringSoon = (expireTime >= startTime && expireTime <= endTime);
+		                        
+		                        // 计算剩余天数
+		                        const daysLeft = Math.ceil((expireTime - now) / (24 * 60 * 60 * 1000));
+		                        if (daysLeft < 0) {
+		                            expiredDays = `<span class="expiring-badge">已过期${Math.abs(daysLeft)}天</span>`;
+		                        } else if (daysLeft === 0) {
+		                            expiredDays = `<span class="expiring-badge">今天过期</span>`;
+		                        } else {
+		                            expiredDays = `<span class="expiring-badge">剩余${daysLeft}天</span>`;
+		                        }
+		                    }
+		                }
+		
+		                if (isExpiringSoon) expiringCount++;
+		
+		                const rowClass = isExpiringSoon ? 'class="row-expiring"' : '';
+		                
+		                html += `<tr ${rowClass}>
+		                    <td>${isExpiringSoon ? '⚠️ ' : ''}${record.rowNum || ''}</td>
+		                    <td>${escapeHtml(record.registrantName || '')}</td>
+		                    <td>${escapeHtml(record.registrantMobile || '')}</td>
+		                    <td>${escapeHtml(record.customerName || '')}</td>
+		                    <td>${escapeHtml(record.shopId || '')}</td>
+		                    <td>${escapeHtml(record.platform || '')}</td>
+		                    <td>${escapeHtml(beijingTimeStr)} ${expiredDays}</td>
+		                </tr>`;
+		            });
+		            
+		            tbody.innerHTML = html;
+		            resultCount.innerHTML = `共 ${result.count} 条记录，<span style="color:#e74c3c;">⚠️ ${expiringCount} 条即将过期</span>`;
+		        } else {
+		            tbody.innerHTML = '<tr><td colspan="7" class="no-data">暂无数据</td></tr>';
+		            resultCount.textContent = '共 0 条记录';
+		        }
+		
+		        updateSortIcons();
+		
+		    } catch (error) {
+		        document.getElementById('tableBody').innerHTML = 
+		            '<tr><td colspan="7" class="no-data">查询失败：' + error.message + '</td></tr>';
+		    }
+		}
+        
+
+        function sortTable(field) {
+            if (currentSortField === field) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortField = field;
+                currentSortOrder = 'desc';
+            }
+            searchRecords();
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.textContent = '';
+                icon.parentElement.classList.remove('sorted');
+            });
+            
+            const activeIcon = document.getElementById('sort-' + currentSortField);
+            if (activeIcon) {
+                activeIcon.textContent = currentSortOrder === 'asc' ? ' ▲' : ' ▼';
+                activeIcon.parentElement.classList.add('sorted');
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById('searchCustomerName').value = '';
+            document.getElementById('searchShopId').value = '';
+            document.getElementById('searchMobile').value = '';
+            currentSortField = 'refresh_expires_time_beijing';
+            currentSortOrder = 'asc';
+            searchRecords();
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            searchRecords();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                submitData();
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PGFX AS2 压力测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-title h1 {
+            font-size: 26px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .header-title .subtitle {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* 表单行布局 */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-right: 4px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Microsoft YaHei', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+            display: none;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 40px;
+        }
+
+        /* 结果提示 */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .result-box.success {
+            display: block;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result-box.error {
+            display: block;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result-box.info {
+            display: block;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .result-detail {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 标题 -->
+        <div class="header-title">
+            <h1>📊 宝洁分销 AS2文件接口 压力测试</h1>
+            <div class="hint">💡 读取指定目录下的所有文件存入MongoDB</div>
+        </div>
+
+        <!-- 表单 - 三列同行 -->
+        <div class="form-row">
+            <div class="form-group">
+                <label><span class="required">*</span>消息集：</label>
+                <input type="text" id="messageSet" placeholder="请输入消息集名称" maxlength="16">
+            </div>
+            <div class="form-group">
+                <label><span class="required">*</span>消息编码：</label>
+                <input type="text" id="messageCode" placeholder="请输入消息编码" maxlength="64">
+            </div>
+            <div class="form-group">
+                <label><span class="required">*</span>文件路径：</label>
+                <input type="text" id="filePath" placeholder="如：/data/files/test/">
+            </div>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="startImport()">
+                <span>📥</span> 开始导入
+            </button>
+            <button class="btn btn-secondary" onclick="resetForm()">
+                <span>🔄</span> 重 置
+            </button>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+
+        <!-- 结果提示 -->
+        <div id="resultBox" class="result-box"></div>
+    </div>
+
+    <script>
+        /**
+         * 重置表单
+         */
+        function resetForm() {
+            document.getElementById('messageSet').value = '';
+            document.getElementById('messageCode').value = '';
+            document.getElementById('filePath').value = '';
+            
+            const resultBox = document.getElementById('resultBox');
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'none';
+            resultBox.innerHTML = '';
+            
+            const progressBar = document.getElementById('progressBar');
+            progressBar.classList.remove('active');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressFill').textContent = '0%';
+        }
+
+        /**
+         * 更新进度条
+         */
+        function updateProgress(percent) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = percent + '%';
+        }
+
+        /**
+         * 开始导入
+         */
+        async function startImport() {
+            const messageSet = document.getElementById('messageSet').value.trim();
+            const messageCode = document.getElementById('messageCode').value.trim();
+            const filePath = document.getElementById('filePath').value.trim();
+
+            if (!messageSet) { showResult('error', '请输入消息集'); return; }
+            if (!messageCode) { showResult('error', '请输入消息编码'); return; }
+            if (!filePath) { showResult('error', '请输入文件路径'); return; }
+
+            const confirmMsg = `请确认以下信息：\n\n` +
+                `消息集：${messageSet}\n` +
+                `消息编码：${messageCode}\n` +
+                `文件路径：${filePath}\n\n` +
+                `确认开始导入？`;
+
+            if (!confirm(confirmMsg)) return;
+
+            const resultBox = document.getElementById('resultBox');
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'none';
+            resultBox.innerHTML = '';
+
+            const progressBar = document.getElementById('progressBar');
+            progressBar.classList.add('active');
+            updateProgress(5);
+
+            const submitBtn = document.querySelector('.btn-primary');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="loading"></span> 导入中...';
+            submitBtn.disabled = true;
+
+            let progressInterval = setInterval(() => {
+                const currentWidth = parseInt(document.getElementById('progressFill').style.width);
+                if (currentWidth < 90) {
+                    updateProgress(currentWidth + 3);
+                }
+            }, 500);
+
+            try {
+                const response = await fetch('/api/pgfxas2/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messageSet, messageCode, filePath })
+                });
+
+                clearInterval(progressInterval);
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updateProgress(100);
+                    
+                    let detailHtml = '';
+                    if (result.data) {
+                        detailHtml = `
+                            <div class="result-detail">
+                                <div>📁 文件总数：<strong>${result.data.totalFiles || 0}</strong></div>
+                                <div>✅ 成功导入：<strong style="color:#27ae60;">${result.data.successCount || 0}</strong></div>
+                                <div>❌ 导入失败：<strong style="color:#e74c3c;">${result.data.failCount || 0}</strong></div>
+                                <div>💾 集合名称：<strong>${result.data.collectionName || ''}</strong></div>
+                                <div>⏱️ 耗时：<strong>${result.data.elapsedTime || ''}</strong></div>
+                                ${result.data.failFiles && result.data.failFiles.length > 0 ? 
+                                    '<div style="margin-top:8px;color:#e74c3c;">失败文件：<br>' + 
+                                    result.data.failFiles.map(f => '&nbsp;&nbsp;• ' + f).join('<br>') + '</div>' : ''}
+                            </div>`;
+                    }
+                    
+                    showResult('success', detailHtml);
+                    
+                    setTimeout(() => {
+                        progressBar.classList.remove('active');
+                    }, 3000);
+                } else {
+                    updateProgress(0);
+                    progressBar.classList.remove('active');
+                    showResult('error', result.message || '导入失败');
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                updateProgress(0);
+                progressBar.classList.remove('active');
+                showResult('error', '网络错误：' + error.message);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        function showResult(type, message) {
+            const resultBox = document.getElementById('resultBox');
+            
+            if (type === 'success') {
+                resultBox.className = 'result-box success';
+                resultBox.innerHTML = '<strong>✅ 导入完成！</strong>' + (message || '');
+            } else if (type === 'info') {
+                resultBox.className = 'result-box info';
+                resultBox.innerHTML = '<strong>⏳ ' + message + '</strong>';
+            } else {
+                resultBox.className = 'result-box error';
+                resultBox.innerHTML = '<strong>❌ ' + (message || '') + '</strong>';
+            }
+            
+            resultBox.style.display = 'block';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                startImport();
+            }
+        });
+    </script>
+
+</body>
+</html>

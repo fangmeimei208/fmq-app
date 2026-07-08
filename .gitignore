@@ -1,0 +1,23 @@
+# Maven build output
+target/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Downloaded temp files
+downloaded_*

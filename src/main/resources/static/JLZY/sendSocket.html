@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket调试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-title h1 {
+            font-size: 26px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .header-title .subtitle {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* 表单行布局 */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-right: 4px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Courier New', 'Microsoft YaHei', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* 状态指示 */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 10px;
+            flex-shrink: 0;
+            padding-bottom: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            flex-shrink: 0;
+        }
+
+        .status-dot.connected {
+            background: #27ae60;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 5px rgba(39, 174, 96, 0.5); }
+            50% { box-shadow: 0 0 15px rgba(39, 174, 96, 0.8); }
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-primary.connected {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn-primary.connected:hover {
+            box-shadow: 0 10px 25px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            flex: 0.5;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 响应区域 */
+        .response-section {
+            margin-top: 25px;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .response-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .response-count {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .response-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .response-box .entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .response-box .entry:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .response-box .time-label {
+            color: #999;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .response-box .hex-line {
+            color: #e67e22;
+            word-break: break-all;
+            font-weight: 600;
+        }
+
+        .response-box .raw-line {
+            color: #2c3e50;
+            word-break: break-all;
+        }
+
+        .response-box .error-line {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .response-box .info-line {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .response-box .empty-line {
+            color: #999;
+            text-align: center;
+            padding: 40px;
+            font-size: 13px;
+        }
+
+        .response-box .empty-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        /* 滚动条 */
+        .response-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .response-box::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .response-box::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        /* 结果提示 */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .result-box.success {
+            display: block;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result-box.error {
+            display: block;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 标题 -->
+        <div class="header-title">
+            <h1>🔌 Socket 调试工具</h1>
+            <div class="hint">💡 TCP Socket 连接测试与数据收发（HEX + RAW 格式）</div>
+        </div>
+
+        <!-- 连接配置 - 三列同行 -->
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label><span class="required">*</span>服务器IP：</label>
+                <input type="text" id="serverIp" placeholder="如：192.168.1.100" value="192.168.1.100">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label><span class="required">*</span>端口：</label>
+                <input type="number" id="serverPort" placeholder="如：4001" value="4001">
+            </div>
+            <div class="status-row">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">未连接</span>
+            </div>
+        </div>
+
+        <!-- 发送消息 -->
+        <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+                <label>发送消息（支持HEX，如：0D0A）：</label>
+                <input type="text" id="sendMessage" placeholder="输入要发送的消息，为空则只读取响应" onkeydown="if(event.key==='Enter')sendMessage()">
+            </div>
+            <button class="btn btn-send" id="btnSend" onclick="sendMessage()" disabled>
+                <span>📤</span> 发 送
+            </button>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnConnect" onclick="toggleConnection()">
+                <span>🔗</span> 连 接
+            </button>
+            <button class="btn btn-secondary" onclick="clearResponse()">
+                <span>🗑️</span> 清空响应
+            </button>
+        </div>
+
+        <!-- 响应区域 -->
+        <div class="response-section">
+            <div class="response-header">
+                <span class="response-title">📋 响应内容</span>
+                <span class="response-count" id="responseCount">共 0 条</span>
+            </div>
+            <div class="response-box" id="responseBox">
+                <div class="empty-line">
+                    <div class="empty-icon">🔌</div>
+                    等待连接...
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果提示 -->
+        <div id="resultBox" class="result-box"></div>
+    </div>
+
+    <script>
+        let isConnected = false;
+        let responseCount = 0;
+        let readTimer = null;
+
+        async function toggleConnection() {
+            if (isConnected) {
+                await disconnect();
+            } else {
+                await connect();
+            }
+        }
+
+        async function connect() {
+            const serverIp = document.getElementById('serverIp').value.trim();
+            const serverPort = document.getElementById('serverPort').value.trim();
+
+            if (!serverIp) { alert('请输入服务器IP'); return; }
+            if (!serverPort) { alert('请输入端口'); return; }
+
+            const btnConnect = document.getElementById('btnConnect');
+            btnConnect.innerHTML = '<span class="loading"></span> 连接中...';
+            btnConnect.disabled = true;
+
+            try {
+                const response = await fetch('/api/socket/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: serverIp, port: parseInt(serverPort) })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    isConnected = true;
+                    updateConnectionStatus(true);
+                    addResponse('info', '✅ 连接成功: ' + serverIp + ':' + serverPort);
+                    startReading();
+                } else {
+                    addResponse('error', '❌ 连接失败: ' + result.message);
+                }
+            } catch (error) {
+                addResponse('error', '❌ 连接异常: ' + error.message);
+            } finally {
+                btnConnect.innerHTML = '<span>🔗</span> 连 接';
+                btnConnect.disabled = false;
+            }
+        }
+
+        async function disconnect() {
+            stopReading();
+            try { await fetch('/api/socket/disconnect', { method: 'POST' }); } catch (error) {}
+            isConnected = false;
+            updateConnectionStatus(false);
+            addResponse('info', '🔌 已断开连接');
+        }
+
+        function startReading() {
+            document.getElementById('btnSend').disabled = false;
+            readLoop();
+        }
+
+        function stopReading() {
+            if (readTimer) { clearTimeout(readTimer); readTimer = null; }
+            document.getElementById('btnSend').disabled = true;
+        }
+
+        async function readLoop() {
+            if (!isConnected) return;
+            try {
+                const response = await fetch('/api/socket/read', { method: 'POST' });
+                const result = await response.json();
+                if (result.success && result.data) {
+                    addResponse('data', result.data);
+                } else if (!result.success && result.message && 
+                    (result.message.includes('断开') || result.message.includes('关闭'))) {
+                    isConnected = false;
+                    updateConnectionStatus(false);
+                    addResponse('error', '⚠️ ' + result.message);
+                    stopReading();
+                    return;
+                }
+            } catch (error) {
+                if (isConnected) addResponse('error', '读取异常: ' + error.message);
+            }
+            if (isConnected) readTimer = setTimeout(readLoop, 200);
+        }
+
+        async function sendMessage() {
+            if (!isConnected) { alert('请先连接'); return; }
+            const message = document.getElementById('sendMessage').value;
+            const btnSend = document.getElementById('btnSend');
+            const originalText = btnSend.innerHTML;
+            btnSend.innerHTML = '<span class="loading"></span> 发送中...';
+            btnSend.disabled = true;
+
+            try {
+                const response = await fetch('/api/socket/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    if (message) addResponse('info', '📤 发送: ' + message);
+                    if (result.data) addResponse('data', result.data);
+                } else {
+                    addResponse('error', '❌ 发送失败: ' + result.message);
+                }
+            } catch (error) {
+                addResponse('error', '❌ 发送异常: ' + error.message);
+            } finally {
+                btnSend.innerHTML = originalText;
+                btnSend.disabled = false;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const btnConnect = document.getElementById('btnConnect');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                btnConnect.innerHTML = '<span>🔌</span> 断 开';
+                btnConnect.className = 'btn btn-primary connected';
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = '已连接';
+                statusText.style.color = '#27ae60';
+            } else {
+                btnConnect.innerHTML = '<span>🔗</span> 连 接';
+                btnConnect.className = 'btn btn-primary';
+                statusDot.className = 'status-dot';
+                statusText.textContent = '未连接';
+                statusText.style.color = '#666';
+            }
+        }
+
+        function addResponse(type, data) {
+            responseCount++;
+            document.getElementById('responseCount').textContent = '共 ' + responseCount + ' 条';
+            const responseBox = document.getElementById('responseBox');
+            const emptyEl = responseBox.querySelector('.empty-line');
+            if (emptyEl) emptyEl.remove();
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false }) + '.' + 
+                           String(now.getMilliseconds()).padStart(3, '0');
+
+            let html = '<div class="entry"><div class="time-label">[' + timeStr + ']</div>';
+            if (type === 'info') {
+                html += '<div class="info-line">' + escapeHtml(data) + '</div>';
+            } else if (type === 'error') {
+                html += '<div class="error-line">' + escapeHtml(data) + '</div>';
+            } else if (type === 'data') {
+                html += '<div class="hex-line">HEX: ' + escapeHtml(data.hex || '') + '</div>';
+                html += '<div class="raw-line">RAW: ' + escapeHtml(data.raw || '') + '</div>';
+            }
+            html += '</div>';
+            responseBox.insertAdjacentHTML('beforeend', html);
+            responseBox.scrollTop = responseBox.scrollHeight;
+        }
+
+        function clearResponse() {
+            responseCount = 0;
+            document.getElementById('responseCount').textContent = '共 0 条';
+            document.getElementById('responseBox').innerHTML = '<div class="empty-line"><div class="empty-icon">🔌</div>等待连接...</div>';
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (isConnected) fetch('/api/socket/disconnect', { method: 'POST' });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+
+</body>
+</html>

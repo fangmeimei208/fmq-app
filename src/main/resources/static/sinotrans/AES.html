@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 加解密工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .label-icon {
+            margin-right: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Courier New', monospace;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .encrypt-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .decrypt-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .result-group {
+            margin-top: 20px;
+        }
+
+        .result-label {
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .result-box {
+            background-color: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 80px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            color: #333;
+            position: relative;
+        }
+
+        .result-box.success {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .result-box.error {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+            color: #dc3545;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔐 加解密工具</h1>
+    <p class="subtitle">使用 AES-256-CBC 加密算法，保护您的数据安全</p>
+
+    <div class="input-group">
+        <label>
+            <span class="label-icon">📝</span> 输入报文：
+        </label>
+        <textarea id="plaintext" placeholder="请输入需要加密的明文，或需要解密的密文..."></textarea>
+    </div>
+
+    <div class="input-group">
+        <label>
+            <span class="label-icon">🔑</span> 输入密钥：
+        </label>
+        <textarea id="key" placeholder="请输入密钥..." style="min-height: 60px;"></textarea>
+    </div>
+
+    <div class="button-group">
+        <button class="encrypt-btn" onclick="performEncrypt()">
+            🔒 加密
+        </button>
+        <button class="decrypt-btn" onclick="performDecrypt()">
+            🔓 解密
+        </button>
+    </div>
+
+    <div class="result-group">
+        <div class="result-label">📋 结果：</div>
+        <div class="result-box" id="result">
+            等待操作...
+        </div>
+    </div>
+    <div class="status-message" id="status"></div>
+</div>
+
+<script>
+    // API基础路径
+    const API_BASE = '/api/Sinotrans';
+
+    // 加密方法
+    async function performEncrypt() {
+        const plaintext = document.getElementById('plaintext').value.trim();
+        const key = document.getElementById('key').value;
+
+        if (!plaintext) {
+            showResult('❌ 请输入需要加密的报文', 'error');
+            return;
+        }
+        if (!key) {
+            showResult('❌ 请输入密钥', 'error');
+            return;
+        }
+
+        try {
+            showLoading('正在加密...');
+            
+            const response = await fetch(`${API_BASE}/encrypt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    plainText: plaintext,
+                    key: key 
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showResult(data.result, 'success');
+                addCopyButton();
+            } else {
+                showResult(`❌ ${data.error}`, 'error');
+            }
+        } catch (error) {
+            showResult('❌ 网络错误或服务器异常: ' + error.message, 'error');
+        }
+    }
+
+    // 解密方法
+    async function performDecrypt() {
+        const ciphertext = document.getElementById('plaintext').value.trim();
+        const key = document.getElementById('key').value;
+
+        if (!ciphertext) {
+            showResult('❌ 请输入需要解密的密文', 'error');
+            return;
+        }
+        if (!key) {
+            showResult('❌ 请输入密钥', 'error');
+            return;
+        }
+
+        try {
+            showLoading('正在解密...');
+            
+            const response = await fetch(`${API_BASE}/decrypt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    cipherText: ciphertext,
+                    key: key 
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showResult(data.result, 'success');
+            } else {
+                showResult(`❌ ${data.error}`, 'error');
+            }
+        } catch (error) {
+            showResult('❌ 网络错误或服务器异常: ' + error.message, 'error');
+        }
+    }
+
+    // 显示结果
+    function showResult(message, type) {
+        const resultDiv = document.getElementById('result');
+        const statusDiv = document.getElementById('status');
+        
+        resultDiv.innerHTML = message;
+        resultDiv.className = 'result-box ' + type;
+        statusDiv.innerHTML = '';
+        
+        // 移除可能存在的复制按钮
+        const existingBtn = resultDiv.querySelector('.copy-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+    }
+
+    // 添加复制按钮
+    function addCopyButton() {
+        const resultDiv = document.getElementById('result');
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = '📋 复制';
+        copyBtn.onclick = function() {
+            const text = resultDiv.textContent.replace('📋 复制', '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.innerHTML = '✅ 已复制';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '📋 复制';
+                }, 2000);
+            });
+        };
+        resultDiv.appendChild(copyBtn);
+    }
+
+    // 显示加载状态
+    function showLoading(message) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerHTML = `<span class="loading"></span>${message}`;
+    }
+
+    // 键盘快捷键支持
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter 加密
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            performEncrypt();
+        }
+        // Ctrl+Shift+Enter 解密
+        if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
+            e.preventDefault();
+            performDecrypt();
+        }
+    });
+</script>
+</body>
+</html>
