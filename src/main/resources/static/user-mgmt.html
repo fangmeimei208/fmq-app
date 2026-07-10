@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            padding: 25px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .page-header h2 { color: #333; font-size: 22px; }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-sm { padding: 4px 12px; font-size: 13px; margin: 0 3px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        th { background: #fafafa; color: #555; font-weight: 600; }
+        tr:hover { background: #f8f9ff; }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .status-enabled { background: #e8f5e9; color: #27ae60; }
+        .status-disabled { background: #fce4e4; color: #e74c3c; }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 460px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        .modal h3 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-size: 14px; font-weight: 500; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #667eea; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-cancel { background: #eee; color: #333; }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 3000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { background: #27ae60; }
+        .toast-error { background: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <h2>👥 用户管理</h2>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ 新增用户</button>
+    </div>
+
+    <table id="userTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>真实姓名</th>
+                <th>角色</th>
+                <th>管理员</th>
+                <th>状态</th>
+                <th>最后登录</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- 新增/编辑弹窗 -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <h3 id="modalTitle">新增用户</h3>
+            <form id="userForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>用户名 *</label>
+                    <input type="text" id="editUsername" required>
+                </div>
+                <div class="form-group" id="pwdGroup">
+                    <label>密码 *</label>
+                    <input type="password" id="editPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>真实姓名</label>
+                    <input type="text" id="editRealName">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="editRoleId">
+                        <option value="">无</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>是否管理员</label>
+                    <select id="editIsAdmin">
+                        <option value="0">否</option>
+                        <option value="1">是</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select id="editStatus">
+                        <option value="1">启用</option>
+                        <option value="0">禁用</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let roleMap = {}; // id -> name
+
+        async function loadRoles() {
+            const resp = await fetch('/api/roles');
+            const data = await resp.json();
+            if (data.success) {
+                roleMap = {};
+                const sel = document.getElementById('editRoleId');
+                sel.innerHTML = '<option value="">无</option>';
+                (data.data||[]).forEach(r => {
+                    roleMap[r.id] = r.roleName;
+                    const opt = document.createElement('option');
+                    opt.value = r.id;
+                    opt.textContent = r.roleName;
+                    sel.appendChild(opt);
+                });
+            }
+        }
+
+        function getRoleName(roleId) {
+            if (!roleId) return '-';
+            return roleMap[roleId] || 'ID:' + roleId;
+        }
+
+        async function loadUsers() {
+            await loadRoles();
+            const resp = await fetch('/api/users');
+            const data = await resp.json();
+            if (!data.success) { showToast('加载失败: ' + (data.message||'无权限'), 'error'); return; }
+            const tbody = document.querySelector('#userTable tbody');
+            tbody.innerHTML = data.data.map(u => `<tr>
+                <td>${u.id}</td>
+                <td>${u.username}</td>
+                <td>${u.realName||'-'}</td>
+                <td>${getRoleName(u.roleId)}</td>
+                <td>${u.isAdmin ? '✅' : '-'}</td>
+                <td><span class="status-badge ${u.status==1?'status-enabled':'status-disabled'}">${u.status==1?'启用':'禁用'}</span></td>
+                <td>${u.lastLoginTime||'-'}</td>
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="openEditModal(${u.id})">编辑</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">删除</button>
+                    <button class="btn btn-sm" style="background:#f39c12;color:white" onclick="resetPwd(${u.id})">重置密码</button>
+                </td>
+            </tr>`).join('');
+        }
+
+        async function openCreateModal() {
+            await loadRoles();
+            document.getElementById('editId').value = '';
+            document.getElementById('modalTitle').textContent = '新增用户';
+            document.getElementById('editUsername').value = '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editRealName').value = '';
+            document.getElementById('editRoleId').value = '';
+            document.getElementById('editIsAdmin').value = '0';
+            document.getElementById('editStatus').value = '1';
+            document.getElementById('pwdGroup').style.display = 'block';
+            document.getElementById('editPassword').required = true;
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        async function openEditModal(id) {
+            await loadRoles();
+            const resp = await fetch('/api/users/' + id);
+            const data = await resp.json();
+            if (!data.success) { showToast('获取用户信息失败', 'error'); return; }
+            const u = data.data;
+            document.getElementById('editId').value = u.id;
+            document.getElementById('modalTitle').textContent = '编辑用户';
+            document.getElementById('editUsername').value = u.username;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editRealName').value = u.realName||'';
+            document.getElementById('editRoleId').value = u.roleId||'';
+            document.getElementById('editIsAdmin').value = u.isAdmin ? '1' : '0';
+            document.getElementById('editStatus').value = u.status;
+            document.getElementById('pwdGroup').style.display = 'none';
+            document.getElementById('editPassword').required = false;
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').classList.remove('show');
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const roleVal = document.getElementById('editRoleId').value;
+            const body = {
+                username: document.getElementById('editUsername').value.trim(),
+                realName: document.getElementById('editRealName').value.trim(),
+                roleId: roleVal ? parseInt(roleVal) : null,
+                isAdmin: document.getElementById('editIsAdmin').value === '1',
+                status: parseInt(document.getElementById('editStatus').value)
+            };
+            if (!id) body.password = document.getElementById('editPassword').value;
+
+            const url = id ? '/api/users/' + id : '/api/users';
+            const method = id ? 'PUT' : 'POST';
+            const resp = await fetch(url, {
+                method: method,
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(body)
+            });
+            const data = await resp.json();
+            showToast(data.message||(data.success?'操作成功':'操作失败'), data.success?'success':'error');
+            if (data.success) { closeModal(); loadUsers(); }
+        });
+
+        async function deleteUser(id) {
+            if (id == 1) { showToast('不能删除超级管理员','error'); return; }
+            if (!confirm('确认删除该用户？')) return;
+            const resp = await fetch('/api/users/' + id, { method: 'DELETE' });
+            const data = await resp.json();
+            showToast(data.message, data.success?'success':'error');
+            if (data.success) loadUsers();
+        }
+
+        async function resetPwd(id) {
+            const newPwd = prompt('请输入新密码（最少6位）：');
+            if (!newPwd || newPwd.length < 6) { showToast('密码至少6位','error'); return; }
+            const resp = await fetch('/api/users/' + id + '/reset-password', {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({password: newPwd})
+            });
+            const data = await resp.json();
+            showToast(data.message, data.success?'success':'error');
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast toast-' + type;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>
