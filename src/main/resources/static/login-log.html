@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录日志</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            padding: 25px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        h2 { color: #333; margin-bottom: 20px; font-size: 22px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        th { background: #fafafa; color: #555; font-weight: 600; }
+        tr:hover { background: #f8f9ff; }
+        .status-success { color: #27ae60; font-weight: bold; }
+        .status-fail { color: #e74c3c; font-weight: bold; }
+        .empty { text-align: center; padding: 40px; color: #999; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <h2>📋 登录日志</h2>
+    <table id="logTable">
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>IP地址</th>
+                <th>User-Agent</th>
+                <th>登录时间</th>
+                <th>状态</th>
+                <th>失败原因</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function loadLogs() {
+            const resp = await fetch('/api/menus/login-logs');
+            const data = await resp.json();
+            if (!data.success) {
+                document.querySelector('#logTable tbody').innerHTML = '<tr><td colspan="6" class="empty">无权限查看</td></tr>';
+                return;
+            }
+            const logs = data.data || [];
+            if (logs.length === 0) {
+                document.querySelector('#logTable tbody').innerHTML = '<tr><td colspan="6" class="empty">暂无登录记录</td></tr>';
+                return;
+            }
+            const tbody = document.querySelector('#logTable tbody');
+            tbody.innerHTML = logs.map(log => {
+                const loginTime = log.login_time && log.login_time.$date
+                    ? new Date(log.login_time.$date).toLocaleString('zh-CN')
+                    : '-';
+                const isSuccess = log.status === 'SUCCESS';
+                return `<tr>
+                    <td>${log.username||'-'}</td>
+                    <td>${log.login_ip||'-'}</td>
+                    <td style="font-size:11px;color:#999;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${log.user_agent||'-'}</td>
+                    <td>${loginTime}</td>
+                    <td class="${isSuccess?'status-success':'status-fail'}">${isSuccess?'✅ 成功':'❌ 失败'}</td>
+                    <td>${log.fail_reason||'-'}</td>
+                </tr>`;
+            }).join('');
+        }
+        loadLogs();
+    </script>
+</body>
+</html>
