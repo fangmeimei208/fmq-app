@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `sys_role` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统角色表';
 
--- 3. 菜单/权限表
+-- 3. 菜单/权限表（parent_id=0为一级菜单，非0为二级菜单）
 CREATE TABLE IF NOT EXISTS `sys_menu` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `menu_name` VARCHAR(50) NOT NULL,
@@ -60,24 +60,32 @@ INSERT IGNORE INTO `sys_role` (`id`, `role_name`, `role_code`, `description`) VA
 (1, '超级管理员', 'ROLE_SUPER_ADMIN', '拥有所有权限'),
 (2, '普通用户', 'ROLE_USER', '基础权限');
 
--- 预设菜单
+-- 预设菜单（两级结构）
+-- 一级菜单（分类）
 INSERT IGNORE INTO `sys_menu` (`id`, `menu_name`, `menu_code`, `url`, `icon`, `parent_id`, `sort_order`) VALUES
-(1, '系统首页', 'home', NULL, '🏠', 0, 1),
-(2, '中外运新国脉AES加解密', 'sinotrans_aes', '/sinotrans/AES.html', '📌', 0, 2),
-(3, '快递token有效期登记查询', 'express_token', '/express/expressTokenRegisterAndList.html', '📌', 0, 3),
-(4, '宝洁分销AS2文件接口压测', 'pg_as2', '/PG/PGFXAS2StressTest.html', '📌', 0, 4),
-(5, '玖龙地磅MOXA调试', 'jlzy_socket', '/JLZY/sendSocket.html', '📌', 0, 5),
-(6, '用户管理', 'user_mgmt', NULL, '👥', 0, 6),
-(7, '角色权限管理', 'role_mgmt', NULL, '🔐', 0, 7),
-(8, '登录日志', 'login_log', NULL, '📋', 0, 8);
+(1, '系统首页', 'home', NULL, '🏠', 0, 0),
+(9, '公共功能', 'public_func', NULL, '📦', 0, 1),
+(10, '项目专属', 'project_func', NULL, '📁', 0, 2),
+(11, '系统管理', 'system_mgmt', NULL, '⚙️', 0, 3);
+
+-- 二级菜单（功能页面）
+INSERT IGNORE INTO `sys_menu` (`id`, `menu_name`, `menu_code`, `url`, `icon`, `parent_id`, `sort_order`) VALUES
+(3, '快递token有效期登记查询', 'express_token', '/express/expressTokenRegisterAndList.html', '📌', 9, 1),
+(2, '中外运新国脉AES加解密', 'sinotrans_aes', '/sinotrans/AES.html', '📌', 10, 1),
+(4, '宝洁分销AS2文件接口压测', 'pg_as2', '/PG/PGFXAS2StressTest.html', '📌', 10, 2),
+(5, '玖龙地磅MOXA调试', 'jlzy_socket', '/JLZY/sendSocket.html', '📌', 10, 3),
+(6, '用户管理', 'user_mgmt', '/user-mgmt.html', '👥', 11, 1),
+(7, '角色权限管理', 'role_mgmt', '/role-mgmt.html', '🔐', 11, 2),
+(8, '登录日志', 'login_log', '/login-log.html', '📋', 11, 3);
 
 -- 管理员角色拥有全部菜单
 INSERT IGNORE INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8);
+(1, 1), (1, 9), (1, 10), (1, 11),
+(1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8);
 
--- 普通用户默认只有首页和基础功能
+-- 普通用户默认只有首页、公共功能（含快递token）
 INSERT IGNORE INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
-(2, 1), (2, 2), (2, 3), (2, 4), (2, 5);
+(2, 1), (2, 9), (2, 3);
 
 -- 预设管理员账号 (密码: admin123, BCrypt加密)
 -- BCrypt hash for "admin123"

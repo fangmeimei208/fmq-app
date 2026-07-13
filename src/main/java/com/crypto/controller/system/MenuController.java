@@ -31,6 +31,18 @@ public class MenuController {
         return Map.of("success", true, "data", menuService.findAll());
     }
 
+    /**
+     * 获取菜单树（供角色管理页面使用），管理员可访问
+     */
+    @GetMapping("/tree")
+    public Map<String, Object> tree(HttpServletRequest request) {
+        SysUser currentUser = authService.getCurrentUser(request);
+        if (currentUser == null || currentUser.getIsAdmin() == null || !currentUser.getIsAdmin()) {
+            return Map.of("success", false, "message", "无权限");
+        }
+        return Map.of("success", true, "data", menuService.getMenuTree());
+    }
+
     @GetMapping("/login-logs")
     public Map<String, Object> loginLogs(HttpServletRequest request) {
         SysUser currentUser = authService.getCurrentUser(request);
