@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `wechat_push_log` (
 
 -- 4. 注册菜单到 sys_menu（如果表存在）
 INSERT IGNORE INTO `sys_menu` (`id`, `menu_name`, `menu_code`, `url`, `parent_id`, `sort_order`, `icon`)
-VALUES (50, '企微群推送', 'wechat_push', '/wechat-push.html', 0, 10, '📨');
+VALUES (50, '企微群推送', 'wechat_push', '/wechat-push.html', 9, 2, '📨');
 
 -- 5. 给 admin 角色分配菜单权限（sys_role_menu）
 INSERT IGNORE INTO `sys_role_menu` (`role_id`, `menu_id`)

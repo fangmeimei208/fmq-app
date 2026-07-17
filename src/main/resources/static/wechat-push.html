@@ -205,7 +205,6 @@ function renderConfigList(){
   if(!configs.length){c.innerHTML='<div class="empty-state">暂无群配置，点击右上角新增</div>';return;}
   c.innerHTML=configs.map(function(x){return '<div class="config-card" onclick="selectConfig('+x.id+')">'+
     '<div class="group-name"><span class="dot '+(x.status===1?'on':'off')+'"></span>'+escHtml(x.groupName)+'</div>'+
-    '<div class="webhook">'+escHtml(x.webhookUrl)+'</div>'+
     (x.remark?'<div class="remark-text">备注: '+escHtml(x.remark)+'</div>':'')+
     '<div class="card-actions"><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openConfigModal('+x.id+')">✏ 编辑</button> <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteConfig('+x.id+')">🗑 删除</button></div></div>';}).join('');
 }
