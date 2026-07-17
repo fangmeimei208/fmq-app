@@ -80,6 +80,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         API_PREFIX_MAP.put("pg_as2", Arrays.asList("/api/pg/"));
         API_PREFIX_MAP.put("jlzy_socket", Arrays.asList("/api/jlzy/", "/api/sendMsg/"));
         API_PREFIX_MAP.put("fulle_share", Arrays.asList("/api/fulle/"));
+        API_PREFIX_MAP.put("wechat_push", Arrays.asList("/api/wechat-push/"));
         API_PREFIX_MAP.put("user_mgmt", Arrays.asList("/api/users/"));
         API_PREFIX_MAP.put("role_mgmt", Arrays.asList("/api/roles/"));
         API_PREFIX_MAP.put("login_log", Arrays.asList("/api/menus/login-logs"));
