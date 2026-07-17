@@ -58,19 +58,10 @@ public class AuthInterceptor implements HandlerInterceptor {
         @SuppressWarnings("unchecked")
         List<SysMenu> menus = (List<SysMenu>) request.getSession().getAttribute("menus");
         if (menus != null && path.startsWith("/api/") && !path.startsWith("/api/auth/")) {
-            // 收集用户所有可访问的 URL
-            Set<String> allowedUrls = collectAllowedUrls(menus);
-            // 检查当前请求路径是否在允许列表中
-            // API 路径匹配：如 /api/express/... 对应菜单 url /express/...
-            String checkPath = path.replaceFirst("^/api", "");
-            boolean allowed = false;
-            for (String allowedUrl : allowedUrls) {
-                if (allowedUrl != null && !allowedUrl.isEmpty() && checkPath.startsWith(allowedUrl)) {
-                    allowed = true;
-                    break;
-                }
-            }
-            if (!allowed) {
+            // 收集用户所有可访问的 menuCode
+            Set<String> allowedCodes = collectAllowedCodes(menus);
+            // 通过 menuCode 映射 API 前缀
+            if (!isApiAllowed(path, allowedCodes)) {
                 response.setContentType("application/json;charset=UTF-8");
                 response.setStatus(403);
                 response.getWriter().write("{\"success\":false,\"message\":\"无权限访问此功能，请联系管理员\",\"code\":403}");
@@ -81,16 +72,40 @@ public class AuthInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    /**
-     * 收集菜单树中所有叶子节点（有url的页面）的URL
-     */
-    private Set<String> collectAllowedUrls(List<SysMenu> menus) {
-        Set<String> urls = new HashSet<>();
+    // menuCode -> 允许的API路径前缀映射
+    private static final Map<String, List<String>> API_PREFIX_MAP = new HashMap<>();
+    static {
+        API_PREFIX_MAP.put("express_token", Arrays.asList("/api/expressToken/"));
+        API_PREFIX_MAP.put("sinotrans_aes", Arrays.asList("/api/sinotrans/"));
+        API_PREFIX_MAP.put("pg_as2", Arrays.asList("/api/pg/"));
+        API_PREFIX_MAP.put("jlzy_socket", Arrays.asList("/api/jlzy/", "/api/sendMsg/"));
+        API_PREFIX_MAP.put("fulle_share", Arrays.asList("/api/fulle/"));
+        API_PREFIX_MAP.put("user_mgmt", Arrays.asList("/api/users/"));
+        API_PREFIX_MAP.put("role_mgmt", Arrays.asList("/api/roles/"));
+        API_PREFIX_MAP.put("login_log", Arrays.asList("/api/menus/login-logs"));
+    }
+
+    private Set<String> collectAllowedCodes(List<SysMenu> menus) {
+        Set<String> codes = new HashSet<>();
         for (SysMenu menu : menus) {
-            if (menu.getUrl() != null && !menu.getUrl().isEmpty()) {
-                urls.add(menu.getUrl());
+            if (menu.getMenuCode() != null) {
+                codes.add(menu.getMenuCode());
             }
         }
-        return urls;
+        return codes;
+    }
+
+    private boolean isApiAllowed(String path, Set<String> allowedCodes) {
+        for (String code : allowedCodes) {
+            List<String> prefixes = API_PREFIX_MAP.get(code);
+            if (prefixes != null) {
+                for (String prefix : prefixes) {
+                    if (path.startsWith(prefix)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }
