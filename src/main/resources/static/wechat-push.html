@@ -375,7 +375,16 @@ function updateCronPreview(){
     var d=document.getElementById('weeklyDay').value;
     cron='0 '+m+' '+h+' ? * '+d; desc='每'+WEEK_NAMES[d]+' '+pad(h)+':'+pad(m)+' 执行';
   }else{
-    cron=document.getElementById('customCron').value.trim(); desc=cron?'自定义: '+cron:'请输入cron表达式';
+    cron=document.getElementById('customCron').value.trim();
+    // 5 字段 → 提示需 6 字段
+    var parts=cron.split(/\s+/).filter(function(x){return x.length>0;});
+    if(parts.length===5){
+      desc='⚠ 格式不完整: 请使用6字段 Spring cron (如 0 */2 * * * ?)，已自动转为 '+parts.join(' ');
+      document.getElementById('cronPreview').style.background='#fff2f0'; document.getElementById('cronPreview').style.color='#ff4d4f';
+    }else{
+      desc=cron?'自定义: '+cron:'请输入6字段 Spring cron 表达式 (如 0 */2 * * * ?)';
+      document.getElementById('cronPreview').style.background='#e6f7ff'; document.getElementById('cronPreview').style.color='#1890ff';
+    }
   }
   document.getElementById('cronExpression').value=cron;
   document.getElementById('cronDesc').value=desc;
