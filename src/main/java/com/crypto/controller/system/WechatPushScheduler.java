@@ -59,8 +59,9 @@ public class WechatPushScheduler {
 
                     CronExpression cronExpression = CronExpression.parse(cronExpr);
 
-                    // next() 返回下一次执行时间
-                    LocalDateTime next = cronExpression.next(zonedNow);
+                    // next() 返回下一次执行时间 (Temporal 适配 Java 8 编译)
+                    java.time.temporal.Temporal nextTemporal = cronExpression.next(zonedNow);
+                    LocalDateTime next = nextTemporal != null ? LocalDateTime.from(nextTemporal) : null;
 
                     if (next != null) {
                         LocalDateTime nextTruncated = next.truncatedTo(ChronoUnit.MINUTES);
