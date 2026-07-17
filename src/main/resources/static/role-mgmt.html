@@ -35,7 +35,7 @@
         .btn-sm { padding: 4px 12px; font-size: 13px; margin: 0 3px; }
         .role-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
             gap: 20px;
         }
         .role-card {
@@ -56,24 +56,66 @@
         }
         .role-code { color: #999; font-size: 12px; background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
         .role-desc { color: #777; font-size: 13px; margin-bottom: 12px; }
-        .menu-checkboxes {
+        .menu-tree { margin-bottom: 14px; }
+        /* 一级菜单分组 */
+        .menu-group {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: #fafafa;
+        }
+        .menu-group-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+        }
+        .menu-group-header input[type=checkbox] {
+            width: 16px; height: 16px; cursor: pointer;
+        }
+        .menu-group-children {
+            margin-left: 28px;
+            margin-top: 6px;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 14px;
+            gap: 6px;
         }
-        .menu-check {
+        .menu-child-check {
             display: flex;
             align-items: center;
             gap: 4px;
             font-size: 13px;
             color: #555;
-            background: #f8f9fa;
-            padding: 4px 10px;
+            background: white;
+            padding: 3px 10px;
             border-radius: 4px;
             cursor: pointer;
+            border: 1px solid #eee;
         }
-        .menu-check:hover { background: #eef0ff; }
+        .menu-child-check:hover { border-color: #667eea; background: #f8f9ff; }
+        .menu-child-check input[type=checkbox] {
+            width: 14px; height: 14px; cursor: pointer;
+        }
+        /* 独立菜单 */
+        .menu-standalone {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #333;
+            padding: 6px 12px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            background: #fafafa;
+            border: 1px solid #eee;
+        }
+        .menu-standalone input[type=checkbox] {
+            width: 16px; height: 16px; cursor: pointer;
+        }
         .card-actions { display: flex; gap: 8px; }
         .modal-overlay {
             display: none;
@@ -163,14 +205,14 @@
 
     <script>
         let allRoles = [];
-        let allMenus = [];
+        let menuTree = [];  // [{id, menuName, icon, children:[{id, menuName, url, ...}], ...}]
         let roleMenus = {}; // roleId -> [menuId, ...]
 
         async function init() {
-            // 加载菜单列表
-            const menuResp = await fetch('/api/menus');
+            // 加载菜单树
+            const menuResp = await fetch('/api/menus/tree');
             const menuData = await menuResp.json();
-            allMenus = menuData.data || [];
+            menuTree = menuData.data || [];
 
             // 加载角色列表
             await loadRoles();
@@ -197,31 +239,117 @@
             const grid = document.getElementById('roleGrid');
             grid.innerHTML = allRoles.map(role => {
                 const assignedMenuIds = roleMenus[role.id] || [];
-                const menuChecks = allMenus.map(m => {
-                    const checked = assignedMenuIds.includes(m.id);
-                    return `<label class="menu-check">
-                        <input type="checkbox" value="${m.id}" ${checked?'checked':''} onchange="saveMenus(${role.id})">
-                        ${m.icon||''} ${m.menuName}
-                    </label>`;
-                }).join('');
 
-                return `<div class="role-card">
+                // 构建菜单树HTML（分组+独立菜单）
+                let menuHtml = '';
+                menuTree.forEach(node => {
+                    if (node.children && node.children.length > 0) {
+                        // 分组菜单：一级菜单 + 二级菜单列表
+                        const childIds = node.children.map(c => c.id);
+                        const allChecked = childIds.every(id => assignedMenuIds.includes(id));
+                        const someChecked = childIds.some(id => assignedMenuIds.includes(id)) && !allChecked;
+
+                        menuHtml += `<div class="menu-group">
+                            <div class="menu-group-header">
+                                <input type="checkbox" value="${node.id}" 
+                                    data-child-ids="${childIds.join(',')}" 
+                                    ${allChecked?'checked':''} 
+                                    ${someChecked?'data-indeterminate="true"':''}
+                                    onchange="onGroupCheck(this, ${role.id})">
+                                <span>${node.icon||'📁'} ${node.menuName}</span>
+                            </div>
+                            <div class="menu-group-children">`;
+                        node.children.forEach(child => {
+                            const checked = assignedMenuIds.includes(child.id);
+                            menuHtml += `<label class="menu-child-check">
+                                <input type="checkbox" value="${child.id}" data-parent="${node.id}"
+                                    ${checked?'checked':''} onchange="onChildCheck(this, ${role.id})">
+                                ${child.icon||'📌'} ${child.menuName}
+                            </label>`;
+                        });
+                        menuHtml += `</div></div>`;
+                    } else {
+                        // 独立菜单（如系统首页）
+                        const checked = assignedMenuIds.includes(node.id);
+                        menuHtml += `<div class="menu-standalone">
+                            <input type="checkbox" value="${node.id}" 
+                                ${checked?'checked':''} onchange="onLeafCheck(this, ${role.id})">
+                            <span>${node.icon||'📌'} ${node.menuName}</span>
+                        </div>`;
+                    }
+                });
+
+                return `<div class="role-card" id="roleCard${role.id}">
                     <h4>🔑 ${role.roleName} <span class="role-code">${role.roleCode}</span></h4>
                     <p class="role-desc">${role.description||'无描述'}</p>
                     <div style="font-size:12px;color:#888;margin-bottom:8px">📋 可访问菜单：</div>
-                    <div class="menu-checkboxes">${menuChecks}</div>
+                    <div class="menu-tree">${menuHtml}</div>
                     <div class="card-actions">
                         <button class="btn btn-primary btn-sm" onclick="openEditModal(${role.id})">编辑</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteRole(${role.id})">删除</button>
                     </div>
                 </div>`;
             }).join('');
+
+            // 处理 indeterminate 状态（需要在DOM渲染后）
+            setTimeout(() => {
+                document.querySelectorAll('input[data-indeterminate="true"]').forEach(cb => {
+                    cb.indeterminate = true;
+                });
+            }, 50);
+        }
+
+        // 一级菜单 checkbox 变化 → 全选/取消所有子菜单
+        function onGroupCheck(cb, roleId) {
+            const childIds = cb.getAttribute('data-child-ids').split(',').map(Number);
+            const card = document.getElementById('roleCard' + roleId);
+            childIds.forEach(cid => {
+                const childCb = card.querySelector(`input[type=checkbox][value="${cid}"]`);
+                if (childCb) childCb.checked = cb.checked;
+            });
+            saveMenus(roleId);
+        }
+
+        // 子菜单 checkbox 变化 → 更新父级状态
+        function onChildCheck(cb, roleId) {
+            const parentId = parseInt(cb.getAttribute('data-parent'));
+            const card = document.getElementById('roleCard' + roleId);
+            const parentCb = card.querySelector(`div.menu-group-header input[value="${parentId}"]`);
+            if (parentCb) {
+                const childIds = parentCb.getAttribute('data-child-ids').split(',').map(Number);
+                const allChecked = childIds.every(id => {
+                    const cc = card.querySelector(`input[value="${id}"]`);
+                    return cc && cc.checked;
+                });
+                const noneChecked = childIds.every(id => {
+                    const cc = card.querySelector(`input[value="${id}"]`);
+                    return cc && !cc.checked;
+                });
+                parentCb.checked = allChecked;
+                parentCb.indeterminate = !allChecked && !noneChecked;
+            }
+            saveMenus(roleId);
+        }
+
+        // 独立菜单 checkbox 变化
+        function onLeafCheck(cb, roleId) {
+            saveMenus(roleId);
         }
 
         async function saveMenus(roleId) {
-            const card = document.querySelectorAll('.role-card')[allRoles.findIndex(r => r.id === roleId)];
-            const checks = card ? card.querySelectorAll('input[type=checkbox]:checked') : [];
+            const card = document.getElementById('roleCard' + roleId);
+            const checks = card.querySelectorAll('input[type=checkbox]:checked');
             const menuIds = Array.from(checks).map(c => parseInt(c.value));
+
+            // 如果勾选了所有子菜单，自动勾选父级菜单
+            menuTree.forEach(node => {
+                if (node.children && node.children.length > 0) {
+                    const childIds = node.children.map(c => c.id);
+                    if (childIds.every(id => menuIds.includes(id)) && !menuIds.includes(node.id)) {
+                        menuIds.push(node.id);
+                    }
+                }
+            });
 
             const resp = await fetch('/api/roles/' + roleId + '/menus', {
                 method: 'POST',

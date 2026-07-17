@@ -88,7 +88,55 @@
             border-left-color: #667eea;
             font-weight: bold;
         }
-        .menu-icon { font-size: 18px; width: 24px; text-align: center; }
+        /* 一级菜单分组 */
+        .menu-group { border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .menu-group-header {
+            padding: 13px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.7);
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .menu-group-header:hover { background: rgba(255,255,255,0.05); color: white; }
+        .menu-group-header .arrow {
+            margin-left: auto;
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+        .menu-group-header.collapsed .arrow { transform: rotate(-90deg); }
+        .menu-sub-list {
+            list-style: none;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .menu-sub-list.collapsed { max-height: 0 !important; }
+        .menu-sub-item {
+            padding: 11px 20px 11px 48px;
+            cursor: pointer;
+            font-size: 13px;
+            color: rgba(255,255,255,0.65);
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .menu-sub-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: white;
+            border-left-color: #667eea;
+        }
+        .menu-sub-item.active {
+            background: rgba(102,126,234,0.2);
+            color: #667eea;
+            border-left-color: #667eea;
+            font-weight: bold;
+        }
         .content { flex: 1; overflow: hidden; background: #f0f2f5; position: relative; }
         .welcome-container {
             display: flex;
@@ -105,7 +153,7 @@
             50% { transform: translateY(-20px); }
         }
         .welcome-title { font-size: 32px; color: #333; margin-bottom: 10px; font-weight: bold; }
-        .welcom-subtitle { font-size: 16px; color: #666; }
+        .welcome-subtitle { font-size: 16px; color: #666; }
         .content-page {
             display: none;
             position: absolute;
@@ -116,6 +164,20 @@
         .content-page iframe {
             width: 100%; height: 100%; border: none;
         }
+        /* 权限错误页面 */
+        .error-page {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-page.active { display: flex; }
+        .error-icon { font-size: 64px; margin-bottom: 16px; }
+        .error-title { font-size: 24px; color: #333; margin-bottom: 8px; }
+        .error-desc { font-size: 14px; color: #999; }
         .sidebar::-webkit-scrollbar, .welcome-container::-webkit-scrollbar { width: 6px; }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
         .sidebar::-webkit-scrollbar-track { background: transparent; }
@@ -144,10 +206,15 @@
             <div id="welcome-page" class="welcome-container">
                 <div class="welcome-icon">👋</div>
                 <h2 class="welcome-title">欢迎使用工作小助手</h2>
-                <p class="welcom-subtitle">请从左侧菜单选择功能</p>
+                <p class="welcome-subtitle">请从左侧菜单选择功能</p>
             </div>
             <div id="content-page" class="content-page">
                 <iframe id="content-iframe" src="" loading="lazy"></iframe>
+            </div>
+            <div id="error-page" class="error-page">
+                <div class="error-icon">🔒</div>
+                <h2 class="error-title">无权限访问</h2>
+                <p class="error-desc">您没有访问此功能的权限，请联系管理员</p>
             </div>
         </div>
     </div>
@@ -155,6 +222,7 @@
     <script>
         let userData = null;
         let menuData = [];
+        let allMenuUrls = []; // 所有允许访问的URL
 
         // 页面加载：检查登录态
         (async function init() {
@@ -167,12 +235,27 @@
                 }
                 userData = data.user;
                 menuData = data.menus || [];
+                collectMenuUrls(menuData);
                 renderUserInfo();
                 renderMenus();
             } catch (e) {
                 window.location.href = '/login.html';
             }
         })();
+
+        function collectMenuUrls(menus) {
+            allMenuUrls = [];
+            for (const menu of menus) {
+                if (menu.children) {
+                    for (const child of menu.children) {
+                        let childUrl = child.url || getDefaultUrlForCode(child.menuCode);
+                        if (childUrl) allMenuUrls.push(childUrl);
+                    }
+                } else if (menu.url) {
+                    allMenuUrls.push(menu.url);
+                }
+            }
+        }
 
         function renderUserInfo() {
             const displayName = userData.realName || userData.username;
@@ -181,66 +264,130 @@
 
         function renderMenus() {
             const menuList = document.getElementById('menuList');
-            // 首页固定
-            menuList.innerHTML = '<li class="menu-item active" onclick="showWelcome()">' +
-                '<span class="menu-icon">🏠</span><span>系统首页</span></li>';
+            menuList.innerHTML = '';
 
-            // 动态菜单
-            menuData.forEach((menu, index) => {
+            // 查找系统首页（独立菜单，无children的一级菜单）
+            const homeMenus = menuData.filter(m => (!m.children || m.children.length === 0) && m.menuCode === 'home');
+            const groupMenus = menuData.filter(m => m.children && m.children.length > 0);
+            const otherMenus = menuData.filter(m => (!m.children || m.children.length === 0) && m.menuCode !== 'home');
+
+            // 1. 系统首页（固定在顶部）
+            if (homeMenus.length > 0) {
+                const home = homeMenus[0];
+                const li = document.createElement('li');
+                li.className = 'menu-item active';
+                li.setAttribute('data-code', home.menuCode);
+                li.setAttribute('onclick', 'showWelcome()');
+                li.innerHTML = '<span class="menu-icon">' + (home.icon || '🏠') + '</span><span>' + home.menuName + '</span>';
+                menuList.appendChild(li);
+            }
+
+            // 2. 分组菜单（一级菜单包含二级子菜单）
+            groupMenus.forEach(group => {
+                const groupLi = document.createElement('li');
+                groupLi.className = 'menu-group';
+
+                const children = group.children || [];
+                const subItemsHtml = children.map(child => {
+                    // 对于系统管理类的菜单，url在数据库中为空，补充默认URL
+                    let childUrl = child.url || getDefaultUrlForCode(child.menuCode);
+                    return `<li class="menu-sub-item" data-code="${child.menuCode}" 
+                        onclick="loadMenuPage('${child.menuCode}','${childUrl}')">
+                        <span>${child.icon || '📌'}</span><span>${child.menuName}</span></li>`;
+                }).join('');
+
+                groupLi.innerHTML = `
+                    <div class="menu-group-header" onclick="toggleGroup(this)" title="${group.menuName}">
+                        <span>${group.icon || '📁'}</span>
+                        <span>${group.menuName}</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <ul class="menu-sub-list" style="max-height:${children.length * 44}px">${subItemsHtml}</ul>`;
+                menuList.appendChild(groupLi);
+            });
+
+            // 3. 其他独立菜单（无子菜单的非home菜单）
+            otherMenus.forEach(menu => {
                 const li = document.createElement('li');
                 li.className = 'menu-item';
                 li.setAttribute('data-code', menu.menuCode);
                 if (menu.url) {
                     li.setAttribute('onclick', `loadMenuPage('${menu.menuCode}','${menu.url}')`);
-                } else {
-                    switch (menu.menuCode) {
-                        case 'user_mgmt':
-                            li.setAttribute('onclick', `loadMenuPage('${menu.menuCode}','/user-mgmt.html')`);
-                            break;
-                        case 'role_mgmt':
-                            li.setAttribute('onclick', `loadMenuPage('${menu.menuCode}','/role-mgmt.html')`);
-                            break;
-                        case 'login_log':
-                            li.setAttribute('onclick', `loadMenuPage('${menu.menuCode}','/login-log.html')`);
-                            break;
-                        default:
-                            li.setAttribute('onclick', `showWelcome()`);
-                    }
                 }
                 li.innerHTML = '<span class="menu-icon">' + (menu.icon || '📌') + '</span><span>' + menu.menuName + '</span>';
                 menuList.appendChild(li);
             });
         }
 
+        function toggleGroup(header) {
+            header.classList.toggle('collapsed');
+            const subList = header.nextElementSibling;
+            subList.classList.toggle('collapsed');
+        }
+
         function showWelcome() {
             document.getElementById('welcome-page').style.display = 'flex';
             document.getElementById('content-page').classList.remove('active');
+            document.getElementById('error-page').classList.remove('active');
             document.getElementById('content-iframe').src = '';
-            setActiveMenu(0);
+            clearAllActive();
             document.title = '工作小助手 - 首页';
+            // 激活首页菜单
+            const homeItem = document.querySelector('.menu-item[data-code="home"]');
+            if (homeItem) homeItem.classList.add('active');
+        }
+
+        function getDefaultUrlForCode(code) {
+            const urlMap = {
+                'user_mgmt': '/user-mgmt.html',
+                'role_mgmt': '/role-mgmt.html',
+                'login_log': '/login-log.html'
+            };
+            return urlMap[code] || '';
         }
 
         function loadMenuPage(code, url) {
+            // 如果url为空，尝试从默认映射获取
+            if (!url) {
+                url = getDefaultUrlForCode(code);
+            }
+            // 检查URL权限
+            if (url && allMenuUrls.length > 0 && !allMenuUrls.includes(url)) {
+                showErrorPage();
+                return;
+            }
+
+            // 展开包含此菜单的分组
+            clearAllActive();
+            const subItem = document.querySelector('.menu-sub-item[data-code="' + code + '"]');
+            if (subItem) {
+                subItem.classList.add('active');
+                // 确保分组是展开的
+                const subList = subItem.parentElement;
+                if (subList.classList.contains('collapsed')) {
+                    subList.classList.remove('collapsed');
+                    subList.previousElementSibling.classList.remove('collapsed');
+                }
+            }
+
             document.getElementById('welcome-page').style.display = 'none';
+            document.getElementById('error-page').classList.remove('active');
             const contentPage = document.getElementById('content-page');
             contentPage.classList.add('active');
             document.getElementById('content-iframe').src = url;
             document.title = '工作小助手 - ' + code;
-
-            // 更新菜单激活
-            const items = document.querySelectorAll('.menu-item');
-            items.forEach((item, idx) => {
-                if (item.getAttribute('data-code') === code) {
-                    setActiveMenu(idx);
-                }
-            });
         }
 
-        function setActiveMenu(index) {
-            const items = document.querySelectorAll('.menu-item');
-            items.forEach((item, idx) => {
-                item.classList.toggle('active', idx === index);
-            });
+        function showErrorPage() {
+            document.getElementById('welcome-page').style.display = 'none';
+            document.getElementById('content-page').classList.remove('active');
+            document.getElementById('error-page').classList.add('active');
+            document.getElementById('content-iframe').src = '';
+            clearAllActive();
+        }
+
+        function clearAllActive() {
+            document.querySelectorAll('.menu-item.active, .menu-sub-item.active').forEach(el => el.classList.remove('active'));
         }
 
         async function doLogout() {

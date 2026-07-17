@@ -124,16 +124,54 @@ public class AuthService {
         return org.mindrot.jbcrypt.BCrypt.checkpw(rawPassword, encodedPassword);
     }
 
+    /**
+     * 构建两级菜单树：一级菜单(parentId=0)包含二级菜单(parentId指向一级)
+     */
     private List<Map<String, Object>> buildMenuTree(List<SysMenu> menus) {
-        List<Map<String, Object>> result = new ArrayList<>();
+        // 分离一级和二级菜单
+        List<SysMenu> topLevel = new ArrayList<>();
+        Map<Long, List<SysMenu>> childrenMap = new LinkedHashMap<>();
+
         for (SysMenu menu : menus) {
+            if (menu.getParentId() == null || menu.getParentId() == 0) {
+                topLevel.add(menu);
+            } else {
+                childrenMap.computeIfAbsent(menu.getParentId(), k -> new ArrayList<>()).add(menu);
+            }
+        }
+
+        // 排序一级菜单
+        topLevel.sort(Comparator.comparingInt(m -> m.getSortOrder() != null ? m.getSortOrder() : 999));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysMenu parent : topLevel) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", menu.getId());
-            item.put("menuName", menu.getMenuName());
-            item.put("menuCode", menu.getMenuCode());
-            item.put("url", menu.getUrl());
-            item.put("icon", menu.getIcon());
-            item.put("sortOrder", menu.getSortOrder());
+            item.put("id", parent.getId());
+            item.put("menuName", parent.getMenuName());
+            item.put("menuCode", parent.getMenuCode());
+            item.put("url", parent.getUrl());
+            item.put("icon", parent.getIcon());
+            item.put("sortOrder", parent.getSortOrder());
+
+            // 构建子菜单
+            List<SysMenu> children = childrenMap.getOrDefault(parent.getId(), new ArrayList<>());
+            children.sort(Comparator.comparingInt(m -> m.getSortOrder() != null ? m.getSortOrder() : 999));
+
+            if (!children.isEmpty()) {
+                List<Map<String, Object>> childList = new ArrayList<>();
+                for (SysMenu child : children) {
+                    Map<String, Object> childItem = new LinkedHashMap<>();
+                    childItem.put("id", child.getId());
+                    childItem.put("menuName", child.getMenuName());
+                    childItem.put("menuCode", child.getMenuCode());
+                    childItem.put("url", child.getUrl());
+                    childItem.put("icon", child.getIcon());
+                    childItem.put("sortOrder", child.getSortOrder());
+                    childItem.put("parentId", child.getParentId());
+                    childList.add(childItem);
+                }
+                item.put("children", childList);
+            }
             result.add(item);
         }
         return result;
