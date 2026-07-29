@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企微群消息推送</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','Segoe UI',Tahoma,sans-serif;background:#f5f7fa;color:#333;padding:24px;overflow-y:auto;height:100vh}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-header h2{font-size:22px;color:#1a1a2e}
+.page-header .header-actions{display:flex;gap:10px}
+.btn{padding:7px 16px;border:none;border-radius:6px;font-size:13px;cursor:pointer;transition:all .2s;font-weight:500}
+.btn-primary{background:#667eea;color:#fff}.btn-primary:hover{background:#5a6fd6}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-outline{background:#fff;color:#667eea;border:1px solid #667eea}.btn-outline:hover{background:#f0f2ff}
+.btn-danger{background:#ff4d4f;color:#fff}.btn-danger:hover{background:#e04344}
+.btn-success{background:#52c41a;color:#fff}.btn-success:hover{background:#49b017}
+.btn-warning{background:#faad14;color:#fff}.btn-warning:hover{background:#e09d12}
+.btn-mgmt{background:#1a1a2e;color:#fff}.btn-mgmt:hover{background:#333}
+.panel{background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.06);overflow:hidden;display:flex;flex-direction:column;margin-bottom:20px}
+.panel-header{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:15px;color:#1a1a2e;background:#fafbfc}
+.panel-body{padding:16px 18px}
+.form-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:13px;color:#666;font-weight:500}
+.form-group input,.form-group select,.form-group textarea{padding:7px 12px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;outline:none;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#667eea;box-shadow:0 0 0 2px rgba(102,126,234,.15)}
+.form-group textarea{resize:vertical;min-height:80px}
+.radio-group{display:flex;gap:16px;align-items:center}
+.radio-group label{display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px}
+.radio-group input[type=radio]{accent-color:#667eea}
+.cron-panel{background:#fafbfc;border:1px solid #e8e8e8;border-radius:8px;padding:14px 16px;margin-top:10px;display:none}
+.cron-panel .cron-preview{margin-top:8px;padding:8px 12px;background:#e6f7ff;border-radius:4px;font-size:13px;color:#1890ff}
+.cron-preset{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.table-container{overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:10}
+th{background:#f8f9fc;padding:10px 12px;text-align:left;border-bottom:2px solid #e8e8e8;font-weight:600;color:#555;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f0f0f0}
+tr:hover{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-on{background:#f6ffed;color:#52c41a;border:1px solid #b7eb8f}
+.badge-off{background:#fafafa;color:#999;border:1px solid #d9d9d9}
+.badge-success{background:#f6ffed;color:#52c41a}
+.badge-fail{background:#fff2f0;color:#ff4d4f}
+.badge-immediate{background:#e6f7ff;color:#1890ff}
+.badge-scheduled{background:#fff7e6;color:#fa8c16}
+.text-ellipsis{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.empty-state{text-align:center;padding:40px 20px;color:#bbb;font-size:14px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);overflow:hidden}
+.modal-sm{width:480px;max-width:90vw}
+.modal-lg{width:700px;max-width:90vw}
+.modal-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;font-weight:600;font-size:16px;display:flex;justify-content:space-between}
+.modal-close{cursor:pointer;font-size:20px;color:#999;background:none;border:none}.modal-close:hover{color:#333}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px}
+.mgmt-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.group-table{width:100%;border-collapse:collapse;font-size:13px}
+.group-table th{background:#f8f9fc;padding:9px 12px;text-align:left;border-bottom:2px solid #e8e8e8}
+.group-table td{padding:8px 12px;border-bottom:1px solid #f0f0f0}
+.group-table tr:hover{background:#fafbff}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot.on{background:#52c41a}.dot.off{background:#d9d9d9}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:6px;font-size:14px;z-index:2000;display:none;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.toast.success{background:#f6ffed;color:#52c41a;border:1px solid #b7eb8f}
+.toast.error{background:#fff2f0;color:#ff4d4f;border:1px solid #ffccc7}
+</style>
+</head>
+<body>
+<div class="page-header"><h2>📨 企微群消息推送</h2><div class="header-actions"><button class="btn btn-mgmt" onclick="openGroupMgmt()">⚙️ 群管理</button><button class="btn btn-outline btn-sm" onclick="refreshAll()">🔄 刷新</button></div></div>
+<div class="toast" id="toast"></div>
+<!-- 群管理弹窗 -->
+<div class="modal-overlay" id="groupMgmtOverlay"><div class="modal modal-lg">
+<div class="modal-header"><span>⚙️ 群配置管理</span><button class="modal-close" onclick="closeGroupMgmt()">&times;</button></div>
+<div class="modal-body">
+<div class="mgmt-toolbar"><span style="color:#666;font-size:13px">共 <b id="groupCount">0</b> 个群</span><button class="btn btn-primary btn-sm" onclick="openConfigModal()">➕ 新增群</button></div>
+<div style="max-height:400px;overflow-y:auto">
+<table class="group-table"><thead><tr><th>群名称</th><th>Webhook 地址</th><th>状态</th><th>备注</th><th style="width:120px">操作</th></tr></thead>
+<tbody id="groupTableBody"><tr><td colspan="5" class="empty-state">暂无群配置</td></tr></tbody></table></div>
+</div></div></div>
+<!-- 群配置编辑弹窗 -->
+<div class="modal-overlay" id="configModalOverlay"><div class="modal modal-sm">
+<div class="modal-header"><span id="configModalTitle">新增群配置</span><button class="modal-close" onclick="closeConfigModal()">&times;</button></div>
+<div class="modal-body">
+<div class="form-group" style="margin-bottom:12px"><label>群名称 *</label><input type="text" id="cfgGroupName" placeholder="用于展示的群名称" style="width:100%"></div>
+<div class="form-group" style="margin-bottom:12px"><label>Webhook 地址 *</label><input type="text" id="cfgWebhookUrl" placeholder="企微机器人Webhook完整URL" style="width:100%"></div>
+<div class="form-group" style="margin-bottom:12px"><label>状态</label><select id="cfgStatus" style="width:100%"><option value="1">启用</option><option value="0">禁用</option></select></div>
+<div class="form-group"><label>备注</label><input type="text" id="cfgRemark" placeholder="选填" style="width:100%"></div>
+</div>
+<div class="modal-footer"><button class="btn btn-outline" onclick="closeConfigModal()">取消</button><button class="btn btn-primary" onclick="saveConfig()">保存</button></div>
+</div></div>
+<!-- 任务编辑弹窗 -->
+<div class="modal-overlay" id="taskModalOverlay"><div class="modal modal-sm">
+<div class="modal-header"><span id="taskModalTitle">新增推送任务</span><button class="modal-close" onclick="closeTaskModal()">&times;</button></div>
+<div class="modal-body">
+<div class="form-group" style="margin-bottom:12px"><label>选择群 *</label><select id="taskConfigId" style="width:100%"></select></div>
+<div class="form-group" style="margin-bottom:12px"><label>消息内容 *</label><textarea id="taskContent" placeholder="输入要推送的消息内容" style="width:100%" rows="5"></textarea></div>
+<div class="form-group" style="margin-bottom:12px"><label>推送方式</label><div class="radio-group"><label><input type="radio" name="pushMode" value="IMMEDIATE" checked onchange="onModeChange()"> 立即发送</label><label><input type="radio" name="pushMode" value="SCHEDULED" onchange="onModeChange()"> 定时推送</label></div></div>
+<div class="cron-panel" id="cronPanel">
+<div class="cron-preset">
+<select id="cronPreset" onchange="onCronPresetChange()" style="padding:6px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px"><option value="daily">每天</option><option value="weekly">每周</option><option value="custom">自定义 Cron</option></select>
+<span id="dailyTimeGroup">时 <input type="number" id="dailyHour" value="10" min="0" max="23" style="width:55px;padding:6px;text-align:center"> 分 <input type="number" id="dailyMinute" value="0" min="0" max="59" style="width:55px;padding:6px;text-align:center"></span>
+<span id="weeklyGroup" style="display:none"><select id="weeklyDay" style="padding:6px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px"><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option><option value="6">周六</option><option value="7">周日</option></select> 时 <input type="number" id="weeklyHour" value="9" min="0" max="23" style="width:55px;padding:6px;text-align:center"> 分 <input type="number" id="weeklyMinute" value="0" min="0" max="59" style="width:55px;padding:6px;text-align:center"></span>
+<span id="customCronGroup" style="display:none"><input type="text" id="customCron" placeholder="0 0 10 * * ?" style="width:170px;padding:6px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px" oninput="onCustomCronInput()"></span></div>
+<div class="cron-preview" id="cronPreview">⏰ 每天 10:00 执行</div>
+<input type="hidden" id="cronExpression"><input type="hidden" id="cronDesc"></div></div>
+<div class="modal-footer"><button class="btn btn-outline" onclick="closeTaskModal()">取消</button><button class="btn btn-primary" onclick="saveTask()">保存任务</button></div>
+</div></div>
+<!-- 主内容 -->
+<div class="panel"><div class="panel-header">✉️ 快速发送 / 新增任务</div><div class="panel-body"><div class="form-row">
+<div class="form-group" style="min-width:160px"><label>目标群 *</label><select id="quickConfigId" style="min-width:180px"><option value="">-- 请选择群 --</option></select></div>
+<div class="form-group" style="flex:1;min-width:300px"><label>消息内容</label><textarea id="quickContent" rows="3" placeholder="输入消息内容..." style="width:100%"></textarea></div>
+<div class="form-group" style="align-self:flex-end;flex-direction:row;gap:8px"><button class="btn btn-success" onclick="sendImmediate()">🚀 立即发送</button><button class="btn btn-primary" onclick="openTaskModal()">💾 新建定时任务</button></div>
+</div></div></div>
+<div class="panel" style="max-height:calc(100vh - 340px)"><div class="panel-header"><span>📋 推送任务列表</span><button class="btn btn-outline btn-sm" onclick="loadTasks()">🔄 刷新</button></div>
+<div class="table-container"><table><thead><tr><th style="width:100px">目标群</th><th>消息内容</th><th style="width:80px">方式</th><th style="width:130px">定时规则</th><th style="width:60px">状态</th><th style="width:120px">上次推送</th><th style="width:150px">操作</th></tr></thead>
+<tbody id="taskTableBody"><tr><td colspan="7" class="empty-state">加载中...</td></tr></tbody></table></div></div>
+
+<script>
+var configs=[],tasks=[],editingConfigId=null,editingTaskId=null;
+function escHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function pad(n){return n<10?'0'+n:''+n}
+function fmtTime(s){if(!s)return'-';return String(s).replace('T',' ').substring(0,16)}
+function showToast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast '+(t||'success');el.style.display='block';setTimeout(function(){el.style.display='none'},3000)}
+document.addEventListener('DOMContentLoaded',function(){loadConfigs();loadTasks();updateCronPreview()});
+['dailyHour','dailyMinute','weeklyHour','weeklyMinute'].forEach(function(id){document.getElementById(id).addEventListener('input',updateCronPreview)});
+document.getElementById('weeklyDay').addEventListener('change',updateCronPreview);
+function refreshAll(){loadConfigs();loadTasks()}
+
+// === 群管理弹窗 ===
+function openGroupMgmt(){loadGroupMgmtTable();document.getElementById('groupMgmtOverlay').classList.add('show')}
+function closeGroupMgmt(){document.getElementById('groupMgmtOverlay').classList.remove('show')}
+function loadGroupMgmtTable(){
+  var tbody=document.getElementById('groupTableBody');document.getElementById('groupCount').textContent=configs.length;
+  if(!configs.length){tbody.innerHTML='<tr><td colspan="5" class="empty-state">暂无群配置</td></tr>';return}
+  tbody.innerHTML=configs.map(function(x){return '<tr><td><span class="dot '+(x.status===1?'on':'off')+'"></span>'+escHtml(x.groupName)+'</td><td style="font-family:monospace;font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(x.webhookUrl)+'">'+escHtml(x.webhookUrl)+'</td><td>'+(x.status===1?'<span class="badge badge-on">启用</span>':'<span class="badge badge-off">禁用</span>')+'</td><td style="font-size:12px;color:#999">'+escHtml(x.remark||'-')+'</td><td><button class="btn btn-outline btn-sm" onclick="openConfigModal('+x.id+')">✏ 编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteConfig('+x.id+')">🗑</button></td></tr>'}).join('')
+}
+
+// === Config CRUD ===
+async function loadConfigs(){try{var r=await fetch('/api/wechat-push/configs');var d=await r.json();if(d.success){configs=d.data;renderSelects()}}catch(e){console.error(e)}}
+function renderSelects(){
+  var active=configs.filter(function(x){return x.status===1});
+  var opts=active.map(function(x){return '<option value="'+x.id+'">'+escHtml(x.groupName)+'</option>'}).join('');
+  document.getElementById('quickConfigId').innerHTML='<option value="">-- 请选择群 --</option>'+opts;
+  var ts=document.getElementById('taskConfigId');if(ts)ts.innerHTML='<option value="">-- 请选择 --</option>'+opts;
+  if(document.getElementById('groupMgmtOverlay').classList.contains('show'))loadGroupMgmtTable()
+}
+function openConfigModal(id){
+  editingConfigId=id||null;
+  if(id){var c=configs.find(function(x){return x.id===id});if(!c)return;document.getElementById('configModalTitle').textContent='编辑群配置';document.getElementById('cfgGroupName').value=c.groupName;document.getElementById('cfgWebhookUrl').value=c.webhookUrl;document.getElementById('cfgStatus').value=c.status;document.getElementById('cfgRemark').value=c.remark||''}
+  else{document.getElementById('configModalTitle').textContent='新增群配置';document.getElementById('cfgGroupName').value='';document.getElementById('cfgWebhookUrl').value='';document.getElementById('cfgStatus').value='1';document.getElementById('cfgRemark').value=''}
+  document.getElementById('configModalOverlay').classList.add('show')
+}
+function closeConfigModal(){document.getElementById('configModalOverlay').classList.remove('show')}
+async function saveConfig(){
+  var gn=document.getElementById('cfgGroupName').value.trim(),wu=document.getElementById('cfgWebhookUrl').value.trim();
+  if(!gn||!wu){showToast('群名称和Webhook地址不能为空','error');return}
+  var body={groupName:gn,webhookUrl:wu,status:parseInt(document.getElementById('cfgStatus').value),remark:document.getElementById('cfgRemark').value.trim()};
+  var url=editingConfigId?'/api/wechat-push/configs/'+editingConfigId:'/api/wechat-push/configs';
+  try{var r=await fetch(url,{method:editingConfigId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});var d=await r.json();showToast(d.msg||'保存成功',d.success?'success':'error');if(d.success){closeConfigModal();loadConfigs();loadTasks()}}catch(e){showToast('保存失败: '+e.message,'error')}
+}
+async function deleteConfig(id){
+  var c=configs.find(function(x){return x.id===id});if(!confirm('确定删除群配置【'+c.groupName+'】吗？关联的推送任务也会被删除。'))return;
+  try{var r=await fetch('/api/wechat-push/configs/'+id,{method:'DELETE'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success){loadConfigs();loadTasks()}}catch(e){showToast('删除失败: '+e.message,'error')}
+}
+
+// === Tasks ===
+async function loadTasks(){try{var r=await fetch('/api/wechat-push/tasks');var d=await r.json();if(d.success){tasks=d.data;renderTaskTable()}}catch(e){console.error(e)}}
+function renderTaskTable(){
+  var tbody=document.getElementById('taskTableBody');
+  if(!tasks.length){tbody.innerHTML='<tr><td colspan="7" class="empty-state">暂无推送任务</td></tr>';return}
+  tbody.innerHTML=tasks.map(function(t){
+    var mb=t.pushMode==='SCHEDULED'?'<span class="badge badge-scheduled">定时</span>':'<span class="badge badge-immediate">立即</span>';
+    var sb=t.enabled===1?'<span class="badge badge-on">启用</span>':'<span class="badge badge-off">停用</span>';
+    var ci=t.pushMode==='SCHEDULED'?(t.cronDesc||t.cronExpression||'-'):'-';
+    var lp=t.lastPushTime?(fmtTime(t.lastPushTime)+' <span class="badge '+(t.lastPushStatus==='SUCCESS'?'badge-success':'badge-fail')+'">'+t.lastPushStatus+'</span>'):'尚未推送';
+    var tgl=t.enabled===1?'⏸':'▶';
+    return '<tr><td>'+escHtml(t.groupName||'-')+'</td><td><span class="text-ellipsis" title="'+escHtml(t.pushContent)+'">'+escHtml((t.pushContent||'').substring(0,40))+'</span></td><td>'+mb+'</td><td style="font-size:12px">'+ci+'</td><td>'+sb+'</td><td style="font-size:12px">'+lp+'</td><td><button class="btn btn-success btn-sm" onclick="executeTask('+t.id+')" title="立即发送">▶</button> <button class="btn btn-outline btn-sm" onclick="openTaskModal(null,'+t.id+')" title="编辑">✏</button> <button class="btn '+(t.enabled===1?'btn-warning':'btn-success')+' btn-sm" onclick="toggleTask('+t.id+','+(t.enabled===1?0:1)+')" title="'+tgl+'">'+tgl+'</button> <button class="btn btn-danger btn-sm" onclick="deleteTask('+t.id+')" title="删除">🗑</button></td></tr>'
+  }).join('')
+}
+async function executeTask(id){
+  var t=tasks.find(function(x){return x.id===id});if(!t)return;
+  if(!confirm('确定向【'+t.groupName+'】发送消息吗？\n\n'+t.pushContent))return;
+  try{var r=await fetch('/api/wechat-push/tasks/'+id+'/send',{method:'POST'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('发送失败','error')}
+}
+async function sendImmediate(){
+  var cid=document.getElementById('quickConfigId').value,ct=document.getElementById('quickContent').value.trim();
+  if(!cid){showToast('请选择目标群','error');return}if(!ct){showToast('请输入消息内容','error');return}
+  var ac=configs.find(function(x){return x.id===parseInt(cid)&&x.status===1});var gn=ac?ac.groupName:'所选群';
+  if(!confirm('确定向【'+gn+'】立即发送消息吗？'))return;
+  try{var r=await fetch('/api/wechat-push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({configId:parseInt(cid),content:ct})});var d=await r.json();showToast(d.msg,d.success?'success':'error')}catch(e){showToast('发送失败','error')}
+}
+async function toggleTask(id,en){try{var r=await fetch('/api/wechat-push/tasks/'+id+'/toggle?enabled='+en,{method:'PUT'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('操作失败','error')}}
+async function deleteTask(id){if(!confirm('确定删除该推送任务吗？'))return;try{var r=await fetch('/api/wechat-push/tasks/'+id,{method:'DELETE'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('删除失败','error')}}
+
+// === Task Modal ===
+function openTaskModal(cid,tid){
+  editingTaskId=tid||null;renderSelects();
+  if(tid){
+    var t=tasks.find(function(x){return x.id===tid});if(!t)return;
+    document.getElementById('taskModalTitle').textContent='编辑推送任务';
+    document.getElementById('taskConfigId').value=t.configId;document.getElementById('taskContent').value=t.pushContent;
+    document.querySelector('input[name="pushMode"][value="'+t.pushMode+'"]').checked=true;onModeChange();
+    if(t.pushMode==='SCHEDULED'){document.getElementById('customCron').value=t.cronExpression||'';document.getElementById('cronExpression').value=t.cronExpression||'';document.getElementById('cronDesc').value=t.cronDesc||'';tryParseCron(t.cronExpression)}
+  }else{
+    document.getElementById('taskModalTitle').textContent='新增推送任务';document.getElementById('taskConfigId').value='';document.getElementById('taskContent').value='';
+    document.querySelector('input[name="pushMode"][value="IMMEDIATE"]').checked=true;onModeChange();resetCronForm()
+  }
+  document.getElementById('taskModalOverlay').classList.add('show')
+}
+function closeTaskModal(){document.getElementById('taskModalOverlay').classList.remove('show')}
+async function saveTask(){
+  var cid=parseInt(document.getElementById('taskConfigId').value),pc=document.getElementById('taskContent').value.trim(),pm=document.querySelector('input[name="pushMode"]:checked').value;
+  if(!cid){showToast('请选择目标群','error');return}if(!pc){showToast('请输入消息内容','error');return}
+  var body={configId:cid,pushContent:pc,pushMode:pm};
+  if(pm==='SCHEDULED'){body.cronExpression=document.getElementById('cronExpression').value;body.cronDesc=document.getElementById('cronDesc').value;if(!body.cronExpression){showToast('请设置定时规则','error');return}}
+  var url=editingTaskId?'/api/wechat-push/tasks/'+editingTaskId:'/api/wechat-push/tasks';
+  try{var r=await fetch(url,{method:editingTaskId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});var d=await r.json();showToast(d.msg||'保存成功',d.success?'success':'error');if(d.success){closeTaskModal();loadTasks()}}catch(e){showToast('保存失败','error')}
+}
+
+// === Cron ===
+var WEEK_NAMES={1:'周一',2:'周二',3:'周三',4:'周四',5:'周五',6:'周六',7:'周日'};
+function onModeChange(){var m=document.querySelector('input[name="pushMode"]:checked').value;document.getElementById('cronPanel').style.display=m==='SCHEDULED'?'block':'none';if(m==='SCHEDULED')updateCronPreview()}
+function onCronPresetChange(){var p=document.getElementById('cronPreset').value;document.getElementById('dailyTimeGroup').style.display=p==='daily'?'':'none';document.getElementById('weeklyGroup').style.display=p==='weekly'?'':'none';document.getElementById('customCronGroup').style.display=p==='custom'?'':'none';updateCronPreview()}
+function resetCronForm(){document.getElementById('cronPreset').value='daily';onCronPresetChange();document.getElementById('dailyHour').value=10;document.getElementById('dailyMinute').value=0;document.getElementById('weeklyHour').value=9;document.getElementById('weeklyMinute').value=0;document.getElementById('weeklyDay').value='1';document.getElementById('customCron').value='';updateCronPreview()}
+function updateCronPreview(){
+  var p=document.getElementById('cronPreset').value,cron='',desc='';
+  if(p==='daily'){var h=parseInt(document.getElementById('dailyHour').value)||0,m=parseInt(document.getElementById('dailyMinute').value)||0;cron='0 '+m+' '+h+' * * ?';desc='每天 '+pad(h)+':'+pad(m)+' 执行'}
+  else if(p==='weekly'){var h=parseInt(document.getElementById('weeklyHour').value)||0,m=parseInt(document.getElementById('weeklyMinute').value)||0,d=document.getElementById('weeklyDay').value;cron='0 '+m+' '+h+' ? * '+d;desc='每'+WEEK_NAMES[d]+' '+pad(h)+':'+pad(m)+' 执行'}
+  else{cron=document.getElementById('customCron').value.trim();var parts=cron.split(/\s+/).filter(function(x){return x.length>0});if(parts.length===5){desc='⚠ 需6字段 Spring cron (如 0 */2 * * * ?)';document.getElementById('cronPreview').style.background='#fff2f0';document.getElementById('cronPreview').style.color='#ff4d4f'}else{desc=cron?'自定义: '+cron:'请输入6字段 Spring cron (如 0 */2 * * * ?)';document.getElementById('cronPreview').style.background='#e6f7ff';document.getElementById('cronPreview').style.color='#1890ff'}}
+  document.getElementById('cronExpression').value=cron;document.getElementById('cronDesc').value=desc;document.getElementById('cronPreview').textContent='⏰ '+desc
+}
+function onCustomCronInput(){updateCronPreview()}
+function tryParseCron(expr){
+  if(!expr){resetCronForm();return}
+  var parts=expr.trim().split(/\s+/);
+  if(parts.length>=6){if(parts[3]==='*'&&parts[4]==='*'&&parts[5]==='?'){document.getElementById('cronPreset').value='daily';document.getElementById('dailyMinute').value=parseInt(parts[1])||0;document.getElementById('dailyHour').value=parseInt(parts[2])||0}else if(parts[3]==='?'&&parts[4]==='*'){document.getElementById('cronPreset').value='weekly';document.getElementById('weeklyMinute').value=parseInt(parts[1])||0;document.getElementById('weeklyHour').value=parseInt(parts[2])||0;document.getElementById('weeklyDay').value=parts[5]||'1'}else{document.getElementById('cronPreset').value='custom';document.getElementById('customCron').value=expr}}
+  else{document.getElementById('cronPreset').value='custom';document.getElementById('customCron').value=expr}
+  onCronPresetChange();updateCronPreview()
+}
+</script>
+</body>
+</html>
