@@ -853,7 +853,7 @@
 		                html += `<tr ${rowClass}>
 		                    <td>${isExpiringSoon ? '⚠️ ' : ''}${record.rowNum || ''}</td>
 		                    <td>${escapeHtml(record.registrantName || '')}</td>
-		                    <td>${escapeHtml(record.registrantMobile || '')}</td>
+		                    <td>${escapeHtml(maskPhone(record.registrantMobile) || '')}</td>
 		                    <td>${escapeHtml(record.customerName || '')}</td>
 		                    <td>${escapeHtml(record.shopId || '')}</td>
 		                    <td>${escapeHtml(record.platform || '')}</td>
@@ -907,6 +907,11 @@
             currentSortField = 'refresh_expires_time_beijing';
             currentSortOrder = 'asc';
             searchRecords();
+        }
+
+        function maskPhone(phone) {
+            if (!phone || phone.length < 7) return phone || '';
+            return phone.substring(0, 3) + '****' + phone.substring(7);
         }
 
         function escapeHtml(text) {
