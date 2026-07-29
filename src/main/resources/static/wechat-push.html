@@ -70,7 +70,7 @@ tr:hover{background:#fafbff}
 </style>
 </head>
 <body>
-<div class="page-header"><h2>📨 企微群消息推送</h2><div class="header-actions"><button class="btn btn-mgmt" onclick="openGroupMgmt()">⚙️ 群管理</button><button class="btn btn-outline btn-sm" onclick="refreshAll()">🔄 刷新</button></div></div>
+<div class="page-header"><h2>📨 企微群消息推送</h2><div class="header-actions"><button class="btn btn-outline" onclick="openLogModal()">📋 任务执行日志</button><button class="btn btn-primary" onclick="openTaskModal()">💾 新建定时任务</button><button class="btn btn-mgmt" onclick="openGroupMgmt()">⚙️ 群管理</button></div></div>
 <div class="toast" id="toast"></div>
 <!-- 群管理弹窗 -->
 <div class="modal-overlay" id="groupMgmtOverlay"><div class="modal modal-lg">
@@ -78,8 +78,17 @@ tr:hover{background:#fafbff}
 <div class="modal-body">
 <div class="mgmt-toolbar"><span style="color:#666;font-size:13px">共 <b id="groupCount">0</b> 个群</span><button class="btn btn-primary btn-sm" onclick="openConfigModal()">➕ 新增群</button></div>
 <div style="max-height:400px;overflow-y:auto">
-<table class="group-table"><thead><tr><th>群名称</th><th>Webhook 地址</th><th>状态</th><th>备注</th><th style="width:120px">操作</th></tr></thead>
-<tbody id="groupTableBody"><tr><td colspan="5" class="empty-state">暂无群配置</td></tr></tbody></table></div>
+<table class="group-table"><thead><tr><th>群名称</th><th>Webhook 地址</th><th>状态</th><th>创建者</th><th>备注</th><th style="width:120px">操作</th></tr></thead>
+<tbody id="groupTableBody"><tr><td colspan="6" class="empty-state">暂无群配置</td></tr></tbody></table></div>
+</div></div></div>
+<!-- 日志查看弹窗 -->
+<div class="modal-overlay" id="logModalOverlay"><div class="modal modal-lg" style="width:900px;max-width:95vw">
+<div class="modal-header"><span>📋 任务执行日志</span><button class="modal-close" onclick="closeLogModal()">&times;</button></div>
+<div class="modal-body">
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><select id="logSearchConfigId" style="padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px;min-width:130px"><option value="">全部群</option></select><input type="text" id="logSearchKeyword" placeholder="消息关键字..." style="padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px;width:160px" onkeydown="if(event.key==='Enter')loadLogs()"><button class="btn btn-outline btn-sm" onclick="loadLogs()">🔍 查询</button><button class="btn btn-outline btn-sm" onclick="document.getElementById('logSearchConfigId').value='';document.getElementById('logSearchKeyword').value='';loadLogs()">↺ 重置</button></div>
+<div style="max-height:500px;overflow-y:auto">
+<table class="group-table"><thead><tr><th style="width:70px">目标群</th><th>消息内容</th><th style="width:60px">方式</th><th style="width:70px">创建者</th><th style="width:55px">结果</th><th style="width:120px">时间</th></tr></thead>
+<tbody id="logTableBody"><tr><td colspan="6" class="empty-state">加载中...</td></tr></tbody></table></div>
 </div></div></div>
 <!-- 群配置编辑弹窗 -->
 <div class="modal-overlay" id="configModalOverlay"><div class="modal modal-sm">
@@ -109,15 +118,9 @@ tr:hover{background:#fafbff}
 <input type="hidden" id="cronExpression"><input type="hidden" id="cronDesc"></div></div>
 <div class="modal-footer"><button class="btn btn-outline" onclick="closeTaskModal()">取消</button><button class="btn btn-primary" onclick="saveTask()">保存任务</button></div>
 </div></div>
-<!-- 主内容 -->
-<div class="panel"><div class="panel-header">✉️ 快速发送 / 新增任务</div><div class="panel-body"><div class="form-row">
-<div class="form-group" style="min-width:160px"><label>目标群 *</label><select id="quickConfigId" style="min-width:180px"><option value="">-- 请选择群 --</option></select></div>
-<div class="form-group" style="flex:1;min-width:300px"><label>消息内容</label><textarea id="quickContent" rows="3" placeholder="输入消息内容..." style="width:100%"></textarea></div>
-<div class="form-group" style="align-self:flex-end;flex-direction:row;gap:8px"><button class="btn btn-success" onclick="sendImmediate()">🚀 立即发送</button><button class="btn btn-primary" onclick="openTaskModal()">💾 新建定时任务</button></div>
-</div></div></div>
-<div class="panel" style="max-height:calc(100vh - 340px)"><div class="panel-header"><span>📋 推送任务列表</span><button class="btn btn-outline btn-sm" onclick="loadTasks()">🔄 刷新</button></div>
-<div class="table-container"><table><thead><tr><th style="width:100px">目标群</th><th>消息内容</th><th style="width:80px">方式</th><th style="width:130px">定时规则</th><th style="width:60px">状态</th><th style="width:120px">上次推送</th><th style="width:150px">操作</th></tr></thead>
-<tbody id="taskTableBody"><tr><td colspan="7" class="empty-state">加载中...</td></tr></tbody></table></div></div>
+<div class="panel" style="max-height:calc(100vh - 130px);overflow-y:auto"><div class="panel-header"><span>📋 推送任务列表</span><div style="display:flex;gap:8px;align-items:center"><select id="searchConfigId" style="padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px;min-width:130px"><option value="">全部群</option></select><input type="text" id="searchKeyword" placeholder="消息关键字..." style="padding:5px 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:12px;width:160px" onkeydown="if(event.key==='Enter')loadTasks()"><button class="btn btn-outline btn-sm" onclick="loadTasks()">🔍 查询</button><button class="btn btn-outline btn-sm" onclick="document.getElementById('searchConfigId').value='';document.getElementById('searchKeyword').value='';loadTasks()">↺ 重置</button></div></div>
+<div class="table-container"><table><thead><tr><th style="width:80px">目标群</th><th style="min-width:280px">消息内容</th><th style="width:60px">方式</th><th style="width:110px">定时规则</th><th style="width:75px">创建者</th><th style="width:50px">状态</th><th style="width:110px">上次推送</th><th style="width:140px">操作</th></tr></thead>
+<tbody id="taskTableBody"><tr><td colspan="8" class="empty-state">加载中...</td></tr></tbody></table></div></div>
 
 <script>
 var configs=[],tasks=[],editingConfigId=null,editingTaskId=null;
@@ -135,16 +138,21 @@ function openGroupMgmt(){loadGroupMgmtTable();document.getElementById('groupMgmt
 function closeGroupMgmt(){document.getElementById('groupMgmtOverlay').classList.remove('show')}
 function loadGroupMgmtTable(){
   var tbody=document.getElementById('groupTableBody');document.getElementById('groupCount').textContent=configs.length;
-  if(!configs.length){tbody.innerHTML='<tr><td colspan="5" class="empty-state">暂无群配置</td></tr>';return}
-  tbody.innerHTML=configs.map(function(x){return '<tr><td><span class="dot '+(x.status===1?'on':'off')+'"></span>'+escHtml(x.groupName)+'</td><td style="font-family:monospace;font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(x.webhookUrl)+'">'+escHtml(x.webhookUrl)+'</td><td>'+(x.status===1?'<span class="badge badge-on">启用</span>':'<span class="badge badge-off">禁用</span>')+'</td><td style="font-size:12px;color:#999">'+escHtml(x.remark||'-')+'</td><td><button class="btn btn-outline btn-sm" onclick="openConfigModal('+x.id+')">✏ 编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteConfig('+x.id+')">🗑</button></td></tr>'}).join('')
+  if(!configs.length){tbody.innerHTML='<tr><td colspan="6" class="empty-state">暂无群配置</td></tr>';return}
+  tbody.innerHTML=configs.map(function(x){return '<tr><td><span class="dot '+(x.status===1?'on':'off')+'"></span>'+escHtml(x.groupName)+'</td><td style="font-family:monospace;font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(x.webhookUrl)+'">'+escHtml(x.webhookUrl)+'</td><td>'+(x.status===1?'<span class="badge badge-on">启用</span>':'<span class="badge badge-off">禁用</span>')+'</td><td style="font-size:12px">'+escHtml(x.creatorName||'-')+'</td><td style="font-size:12px;color:#999">'+escHtml(x.remark||'-')+'</td><td><button class="btn btn-outline btn-sm" onclick="openConfigModal('+x.id+')">✏ 编辑</button> <button class="btn btn-danger btn-sm" onclick="deleteConfig('+x.id+')">🗑</button></td></tr>'}).join('')
 }
 
 // === Config CRUD ===
-async function loadConfigs(){try{var r=await fetch('/api/wechat-push/configs');var d=await r.json();if(d.success){configs=d.data;renderSelects()}}catch(e){console.error(e)}}
-function renderSelects(){
+async function loadConfigs(){try{var r=await fetch('/api/wechat-push/configs');var d=await r.json();if(d.success){configs=d.data;renderTaskSelect();renderSearchSelects()}}catch(e){console.error(e)}}
+function renderSearchSelects(){
+  var active=configs.filter(function(x){return x.status===1});
+  var opts='<option value="">全部群</option>'+active.map(function(x){return '<option value="'+x.id+'">'+escHtml(x.groupName)+'</option>'}).join('');
+  var s1=document.getElementById('searchConfigId');if(s1)s1.innerHTML=opts;
+  var s2=document.getElementById('logSearchConfigId');if(s2)s2.innerHTML=opts;
+}
+function renderTaskSelect(){
   var active=configs.filter(function(x){return x.status===1});
   var opts=active.map(function(x){return '<option value="'+x.id+'">'+escHtml(x.groupName)+'</option>'}).join('');
-  document.getElementById('quickConfigId').innerHTML='<option value="">-- 请选择群 --</option>'+opts;
   var ts=document.getElementById('taskConfigId');if(ts)ts.innerHTML='<option value="">-- 请选择 --</option>'+opts;
   if(document.getElementById('groupMgmtOverlay').classList.contains('show'))loadGroupMgmtTable()
 }
@@ -168,17 +176,25 @@ async function deleteConfig(id){
 }
 
 // === Tasks ===
-async function loadTasks(){try{var r=await fetch('/api/wechat-push/tasks');var d=await r.json();if(d.success){tasks=d.data;renderTaskTable()}}catch(e){console.error(e)}}
+async function loadTasks(){
+  var cid=document.getElementById('searchConfigId').value;
+  var kw=document.getElementById('searchKeyword').value.trim();
+  var parts=[];if(cid)parts.push('configId='+cid);if(kw)parts.push('keyword='+encodeURIComponent(kw));
+  var qs=parts.length?'?'+parts.join('&'):'';
+  try{var r=await fetch('/api/wechat-push/tasks'+qs);var d=await r.json();if(d.success){tasks=d.data;renderTaskTable()}}catch(e){console.error(e)}}
 function renderTaskTable(){
   var tbody=document.getElementById('taskTableBody');
-  if(!tasks.length){tbody.innerHTML='<tr><td colspan="7" class="empty-state">暂无推送任务</td></tr>';return}
+  if(!tasks.length){tbody.innerHTML='<tr><td colspan="8" class="empty-state">暂无推送任务</td></tr>';return}
   tbody.innerHTML=tasks.map(function(t){
     var mb=t.pushMode==='SCHEDULED'?'<span class="badge badge-scheduled">定时</span>':'<span class="badge badge-immediate">立即</span>';
     var sb=t.enabled===1?'<span class="badge badge-on">启用</span>':'<span class="badge badge-off">停用</span>';
     var ci=t.pushMode==='SCHEDULED'?(t.cronDesc||t.cronExpression||'-'):'-';
     var lp=t.lastPushTime?(fmtTime(t.lastPushTime)+' <span class="badge '+(t.lastPushStatus==='SUCCESS'?'badge-success':'badge-fail')+'">'+t.lastPushStatus+'</span>'):'尚未推送';
-    var tgl=t.enabled===1?'⏸':'▶';
-    return '<tr><td>'+escHtml(t.groupName||'-')+'</td><td><span class="text-ellipsis" title="'+escHtml(t.pushContent)+'">'+escHtml((t.pushContent||'').substring(0,40))+'</span></td><td>'+mb+'</td><td style="font-size:12px">'+ci+'</td><td>'+sb+'</td><td style="font-size:12px">'+lp+'</td><td><button class="btn btn-success btn-sm" onclick="executeTask('+t.id+')" title="立即发送">▶</button> <button class="btn btn-outline btn-sm" onclick="openTaskModal(null,'+t.id+')" title="编辑">✏</button> <button class="btn '+(t.enabled===1?'btn-warning':'btn-success')+' btn-sm" onclick="toggleTask('+t.id+','+(t.enabled===1?0:1)+')" title="'+tgl+'">'+tgl+'</button> <button class="btn btn-danger btn-sm" onclick="deleteTask('+t.id+')" title="删除">🗑</button></td></tr>'
+    var creator=t.creatorName||'-';
+    // 消息内容：去掉长度截断限制，用 title 属性显示全部内容
+    var contentDisplay=(t.pushContent||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var tglText=t.enabled===1?'停用':'启用';
+    return '<tr><td>'+escHtml(t.groupName||'-')+'</td><td style="max-width:280px"><div style="max-height:50px;overflow-y:auto;word-break:break-all;white-space:pre-wrap;font-size:12px;line-height:1.4" title="'+escHtml(t.pushContent||'')+'">'+contentDisplay+'</div></td><td>'+mb+'</td><td style="font-size:12px">'+ci+'</td><td style="font-size:12px">'+escHtml(creator)+'</td><td>'+sb+'</td><td style="font-size:11px">'+lp+'</td><td style="white-space:nowrap;line-height:1.8"><a href="javascript:void(0)" onclick="executeTask('+t.id+')" style="color:#52c41a;text-decoration:none;margin-right:6px;font-size:12px">发送</a><a href="javascript:void(0)" onclick="openTaskModal(null,'+t.id+')" style="color:#667eea;text-decoration:none;margin-right:6px;font-size:12px">编辑</a><br><a href="javascript:void(0)" onclick="toggleTask('+t.id+','+(t.enabled===1?0:1)+')" style="color:'+(t.enabled===1?'#faad14':'#52c41a')+';text-decoration:none;margin-right:6px;font-size:12px">'+tglText+'</a><a href="javascript:void(0)" onclick="deleteTask('+t.id+')" style="color:#ff4d4f;text-decoration:none;font-size:12px">删除</a></td></tr>'
   }).join('')
 }
 async function executeTask(id){
@@ -186,19 +202,13 @@ async function executeTask(id){
   if(!confirm('确定向【'+t.groupName+'】发送消息吗？\n\n'+t.pushContent))return;
   try{var r=await fetch('/api/wechat-push/tasks/'+id+'/send',{method:'POST'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('发送失败','error')}
 }
-async function sendImmediate(){
-  var cid=document.getElementById('quickConfigId').value,ct=document.getElementById('quickContent').value.trim();
-  if(!cid){showToast('请选择目标群','error');return}if(!ct){showToast('请输入消息内容','error');return}
-  var ac=configs.find(function(x){return x.id===parseInt(cid)&&x.status===1});var gn=ac?ac.groupName:'所选群';
-  if(!confirm('确定向【'+gn+'】立即发送消息吗？'))return;
-  try{var r=await fetch('/api/wechat-push/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({configId:parseInt(cid),content:ct})});var d=await r.json();showToast(d.msg,d.success?'success':'error')}catch(e){showToast('发送失败','error')}
-}
+
 async function toggleTask(id,en){try{var r=await fetch('/api/wechat-push/tasks/'+id+'/toggle?enabled='+en,{method:'PUT'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('操作失败','error')}}
 async function deleteTask(id){if(!confirm('确定删除该推送任务吗？'))return;try{var r=await fetch('/api/wechat-push/tasks/'+id,{method:'DELETE'});var d=await r.json();showToast(d.msg,d.success?'success':'error');if(d.success)loadTasks()}catch(e){showToast('删除失败','error')}}
 
 // === Task Modal ===
 function openTaskModal(cid,tid){
-  editingTaskId=tid||null;renderSelects();
+  editingTaskId=tid||null;renderTaskSelect();
   if(tid){
     var t=tasks.find(function(x){return x.id===tid});if(!t)return;
     document.getElementById('taskModalTitle').textContent='编辑推送任务';
@@ -240,6 +250,27 @@ function tryParseCron(expr){
   if(parts.length>=6){if(parts[3]==='*'&&parts[4]==='*'&&parts[5]==='?'){document.getElementById('cronPreset').value='daily';document.getElementById('dailyMinute').value=parseInt(parts[1])||0;document.getElementById('dailyHour').value=parseInt(parts[2])||0}else if(parts[3]==='?'&&parts[4]==='*'){document.getElementById('cronPreset').value='weekly';document.getElementById('weeklyMinute').value=parseInt(parts[1])||0;document.getElementById('weeklyHour').value=parseInt(parts[2])||0;document.getElementById('weeklyDay').value=parts[5]||'1'}else{document.getElementById('cronPreset').value='custom';document.getElementById('customCron').value=expr}}
   else{document.getElementById('cronPreset').value='custom';document.getElementById('customCron').value=expr}
   onCronPresetChange();updateCronPreview()
+}
+
+// === 日志弹窗 ===
+function openLogModal(){loadLogs();document.getElementById('logModalOverlay').classList.add('show')}
+function closeLogModal(){document.getElementById('logModalOverlay').classList.remove('show')}
+async function loadLogs(){
+  var cid=document.getElementById('logSearchConfigId').value;
+  var kw=document.getElementById('logSearchKeyword').value.trim();
+  var parts=['limit=100'];if(cid)parts.push('configId='+cid);if(kw)parts.push('keyword='+encodeURIComponent(kw));
+  try{var r=await fetch('/api/wechat-push/logs?'+parts.join('&'));var d=await r.json();if(d.success)renderLogTable(d.data)}catch(e){console.error(e)}
+}
+function renderLogTable(logs){
+  var tbody=document.getElementById('logTableBody');
+  if(!logs||!logs.length){tbody.innerHTML='<tr><td colspan="6" class="empty-state">暂无执行日志</td></tr>';return}
+  tbody.innerHTML=logs.map(function(l){
+    var mb=l.pushMode==='SCHEDULED'?'<span class="badge badge-scheduled">定时</span>':'<span class="badge badge-immediate">立即</span>';
+    var sb=l.status==='SUCCESS'?'<span class="badge badge-success">成功</span>':'<span class="badge badge-fail">失败</span>';
+    var contentDisplay=(l.pushContent||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var err=l.status==='FAIL'&&l.errmsg?'<br><span style="color:#ff4d4f;font-size:11px">'+escHtml(l.errmsg)+'</span>':'';
+    return '<tr><td>'+escHtml(l.groupName||'-')+'</td><td style="max-width:280px"><div style="max-height:40px;overflow-y:auto;word-break:break-all;white-space:pre-wrap;font-size:12px;line-height:1.4" title="'+escHtml(l.pushContent||'')+'">'+contentDisplay+'</div></td><td>'+mb+'</td><td style="font-size:12px">'+escHtml(l.creatorName||'-')+'</td><td>'+sb+err+'</td><td style="font-size:11px;white-space:nowrap">'+fmtTime(l.createdAt)+'</td></tr>'
+  }).join('')
 }
 </script>
 </body>

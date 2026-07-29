@@ -1,5 +1,6 @@
 package com.crypto.controller.system;
 
+import com.crypto.entity.SysUser;
 import com.crypto.entity.WechatPushConfig;
 import com.crypto.entity.WechatPushLog;
 import com.crypto.entity.WechatPushTask;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpSession;
 import java.util.*;
 
 @RestController
@@ -23,11 +25,25 @@ public class WechatPushController {
         this.service = service;
     }
 
+    /**
+     * 获取当前登录用户，未登录返回 null
+     */
+    private SysUser getCurrentUser(HttpSession session) {
+        return (SysUser) session.getAttribute("user");
+    }
+
+    private boolean isAdmin(HttpSession session) {
+        SysUser user = getCurrentUser(session);
+        return user != null && user.getIsAdmin() != null && user.getIsAdmin();
+    }
+
     // ==================== 群配置管理 ====================
 
     @GetMapping("/configs")
-    public Map<String, Object> listConfigs() {
-        return Map.of("success", true, "data", service.getAllConfigs());
+    public Map<String, Object> listConfigs(HttpSession session) {
+        SysUser user = getCurrentUser(session);
+        boolean admin = isAdmin(session);
+        return Map.of("success", true, "data", service.getAllConfigs(admin, user != null ? user.getId() : null));
     }
 
     @GetMapping("/configs/active")
@@ -45,10 +61,14 @@ public class WechatPushController {
     }
 
     @PostMapping("/configs")
-    public Map<String, Object> addConfig(@RequestBody WechatPushConfig config) {
+    public Map<String, Object> addConfig(@RequestBody WechatPushConfig config, HttpSession session) {
         try {
+            SysUser user = getCurrentUser(session);
+            if (user != null) {
+                config.setCreatedBy(user.getId());
+            }
             service.addConfig(config);
-            logger.info("新增群配置 - 群名称: {}", config.getGroupName());
+            logger.info("新增群配置 - 群名称: {}, 创建者: {}", config.getGroupName(), user != null ? user.getUsername() : "unknown");
             return Map.of("success", true, "msg", "添加成功", "data", config);
         } catch (Exception e) {
             logger.error("新增群配置失败: {}", e.getMessage(), e);
@@ -85,8 +105,23 @@ public class WechatPushController {
     // ==================== 推送任务管理 ====================
 
     @GetMapping("/tasks")
-    public Map<String, Object> listTasks() {
-        return Map.of("success", true, "data", service.getAllTasks());
+    public Map<String, Object> listTasks(
+            @RequestParam(required = false) Long configId,
+            @RequestParam(required = false) String keyword,
+            HttpSession session) {
+        SysUser user = getCurrentUser(session);
+        boolean admin = isAdmin(session);
+        List<WechatPushTask> allTasks = service.getAllTasks(admin, user != null ? user.getId() : null);
+        
+        // 内存过滤：按群ID和关键字筛出
+        List<WechatPushTask> filtered = new ArrayList<>();
+        for (WechatPushTask t : allTasks) {
+            if (configId != null && configId > 0 && !configId.equals(t.getConfigId())) continue;
+            if (keyword != null && !keyword.trim().isEmpty()
+                && (t.getPushContent() == null || !t.getPushContent().contains(keyword.trim()))) continue;
+            filtered.add(t);
+        }
+        return Map.of("success", true, "data", filtered);
     }
 
     @GetMapping("/tasks/{id}")
@@ -99,13 +134,17 @@ public class WechatPushController {
     }
 
     @PostMapping("/tasks")
-    public Map<String, Object> addTask(@RequestBody WechatPushTask task) {
+    public Map<String, Object> addTask(@RequestBody WechatPushTask task, HttpSession session) {
         try {
             if (task.getPushMode() == null) {
                 task.setPushMode("IMMEDIATE");
             }
+            SysUser user = getCurrentUser(session);
+            if (user != null) {
+                task.setCreatedBy(user.getId());
+            }
             service.addTask(task);
-            logger.info("新增推送任务 - ID: {}, 群ID: {}, 模式: {}", task.getId(), task.getConfigId(), task.getPushMode());
+            logger.info("新增推送任务 - ID: {}, 群ID: {}, 模式: {}, 创建者: {}", task.getId(), task.getConfigId(), task.getPushMode(), user != null ? user.getUsername() : "unknown");
             return Map.of("success", true, "msg", "添加成功", "data", task);
         } catch (Exception e) {
             logger.error("新增推送任务失败: {}", e.getMessage(), e);
@@ -201,8 +240,15 @@ public class WechatPushController {
     // ==================== 推送日志 ====================
 
     @GetMapping("/logs")
-    public Map<String, Object> listLogs(@RequestParam(defaultValue = "50") int limit) {
-        List<WechatPushLog> logs = service.getRecentLogs(Math.min(limit, 200));
+    public Map<String, Object> listLogs(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(required = false) Long configId,
+            @RequestParam(required = false) String keyword,
+            HttpSession session) {
+        SysUser user = getCurrentUser(session);
+        boolean admin = isAdmin(session);
+        List<WechatPushLog> logs = service.queryLogs(
+            user != null ? user.getId() : null, admin, configId, keyword, Math.min(limit, 200));
         return Map.of("success", true, "data", logs);
     }
 }

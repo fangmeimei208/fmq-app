@@ -13,6 +13,8 @@ public class WechatPushTask {
     private String pushMode;
     private String cronExpression;
     private String cronDesc;
+    private Long createdBy;
+    private String creatorName;
     private Integer enabled;
     private LocalDateTime lastPushTime;
     private String lastPushStatus;
@@ -41,6 +43,12 @@ public class WechatPushTask {
 
     public String getCronDesc() { return cronDesc; }
     public void setCronDesc(String cronDesc) { this.cronDesc = cronDesc; }
+
+    public Long getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
+
+    public String getCreatorName() { return creatorName; }
+    public void setCreatorName(String creatorName) { this.creatorName = creatorName; }
 
     public Integer getEnabled() { return enabled; }
     public void setEnabled(Integer enabled) { this.enabled = enabled; }

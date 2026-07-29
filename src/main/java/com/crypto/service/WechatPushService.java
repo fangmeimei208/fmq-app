@@ -39,8 +39,8 @@ public class WechatPushService {
 
     // ==================== 群配置管理 ====================
 
-    public List<WechatPushConfig> getAllConfigs() {
-        return configMapper.findAll();
+    public List<WechatPushConfig> getAllConfigs(boolean isAdmin, Long userId) {
+        return isAdmin ? configMapper.findAll() : configMapper.findByCreator(userId);
     }
 
     public List<WechatPushConfig> getActiveConfigs() {
@@ -74,8 +74,8 @@ public class WechatPushService {
 
     // ==================== 推送任务管理 ====================
 
-    public List<WechatPushTask> getAllTasks() {
-        return taskMapper.findAll();
+    public List<WechatPushTask> getAllTasks(boolean isAdmin, Long userId) {
+        return isAdmin ? taskMapper.findAll() : taskMapper.findByCreator(userId);
     }
 
     public WechatPushTask getTaskById(Long id) {
@@ -242,6 +242,13 @@ public class WechatPushService {
 
     public List<WechatPushLog> getRecentLogs(int limit) {
         return logMapper.findAll(limit);
+    }
+
+    /**
+     * 按条件查询日志（带权限过滤）
+     */
+    public List<WechatPushLog> queryLogs(Long userId, boolean isAdmin, Long configId, String keyword, int limit) {
+        return logMapper.query(userId, isAdmin, configId, keyword, limit);
     }
 
     // ==================== 工具方法 ====================

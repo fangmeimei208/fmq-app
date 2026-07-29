@@ -22,38 +22,55 @@ public class WechatPushConfigMapper {
     private final RowMapper<WechatPushConfig> rowMapper = new RowMapper<WechatPushConfig>() {
         @Override
         public WechatPushConfig mapRow(ResultSet rs, int rowNum) throws SQLException {
-            WechatPushConfig c = new WechatPushConfig();
-            c.setId(rs.getLong("id"));
-            c.setGroupName(rs.getString("group_name"));
-            c.setWebhookUrl(rs.getString("webhook_url"));
-            c.setStatus(rs.getInt("status"));
-            c.setRemark(rs.getString("remark"));
-            Timestamp ca = rs.getTimestamp("created_at");
-            c.setCreatedAt(ca != null ? ca.toLocalDateTime() : null);
-            Timestamp ua = rs.getTimestamp("updated_at");
-            c.setUpdatedAt(ua != null ? ua.toLocalDateTime() : null);
+            WechatPushConfig c = mapBase(rs);
             return c;
         }
     };
 
+    private WechatPushConfig mapBase(ResultSet rs) throws SQLException {
+        WechatPushConfig c = new WechatPushConfig();
+        c.setId(rs.getLong("id"));
+        c.setGroupName(rs.getString("group_name"));
+        c.setWebhookUrl(rs.getString("webhook_url"));
+        c.setStatus(rs.getInt("status"));
+        c.setRemark(rs.getString("remark"));
+        try { long cb = rs.getLong("created_by"); if (!rs.wasNull()) c.setCreatedBy(cb); } catch (Exception e) { }
+        try { c.setCreatorName(rs.getString("creator_name")); } catch (Exception e) { }
+        Timestamp ca = rs.getTimestamp("created_at");
+        c.setCreatedAt(ca != null ? ca.toLocalDateTime() : null);
+        Timestamp ua = rs.getTimestamp("updated_at");
+        c.setUpdatedAt(ua != null ? ua.toLocalDateTime() : null);
+        return c;
+    }
+
+    private final RowMapper<WechatPushConfig> rowMapperWithJoin = (rs, rowNum) -> mapBase(rs);
+
     public List<WechatPushConfig> findAll() {
-        return jdbcTemplate.query("SELECT * FROM wechat_push_config ORDER BY id", rowMapper);
+        return jdbcTemplate.query(
+            "SELECT c.*, u.real_name as creator_name FROM wechat_push_config c LEFT JOIN sys_user u ON c.created_by = u.id ORDER BY c.id",
+            rowMapperWithJoin);
+    }
+
+    public List<WechatPushConfig> findByCreator(Long userId) {
+        return jdbcTemplate.query(
+            "SELECT c.*, u.real_name as creator_name FROM wechat_push_config c LEFT JOIN sys_user u ON c.created_by = u.id WHERE c.created_by = ? ORDER BY c.id",
+            rowMapperWithJoin, userId);
     }
 
     public List<WechatPushConfig> findActive() {
-        return jdbcTemplate.query("SELECT * FROM wechat_push_config WHERE status = 1 ORDER BY id", rowMapper);
+        return jdbcTemplate.query("SELECT c.*, u.real_name as creator_name FROM wechat_push_config c LEFT JOIN sys_user u ON c.created_by = u.id WHERE c.status = 1 ORDER BY c.id", rowMapperWithJoin);
     }
 
     public WechatPushConfig findById(Long id) {
         List<WechatPushConfig> list = jdbcTemplate.query(
-            "SELECT * FROM wechat_push_config WHERE id = ?", rowMapper, id);
+            "SELECT c.*, u.real_name as creator_name FROM wechat_push_config c LEFT JOIN sys_user u ON c.created_by = u.id WHERE c.id = ?", rowMapperWithJoin, id);
         return list.isEmpty() ? null : list.get(0);
     }
 
     public int insert(WechatPushConfig c) {
         return jdbcTemplate.update(
-            "INSERT INTO wechat_push_config (group_name, webhook_url, status, remark) VALUES (?,?,?,?)",
-            c.getGroupName(), c.getWebhookUrl(), c.getStatus() != null ? c.getStatus() : 1, c.getRemark());
+            "INSERT INTO wechat_push_config (group_name, webhook_url, status, remark, created_by) VALUES (?,?,?,?,?)",
+            c.getGroupName(), c.getWebhookUrl(), c.getStatus() != null ? c.getStatus() : 1, c.getRemark(), c.getCreatedBy());
     }
 
     public int update(WechatPushConfig c) {
