@@ -16,6 +16,8 @@ public class WechatPushLog {
     private Integer errcode;
     private String errmsg;
     private String status;
+    private Long createdBy;
+    private String creatorName;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -44,6 +46,12 @@ public class WechatPushLog {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Long getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
+
+    public String getCreatorName() { return creatorName; }
+    public void setCreatorName(String creatorName) { this.creatorName = creatorName; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
